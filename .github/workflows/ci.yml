@@ -1,0 +1,42 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  firmware:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scenario tests (C++ control logic)
+        run: make -C tests/firmware
+      - name: Compile check of the full sketch
+        run: make -C tests/firmware syntax
+
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Scenario tests (Python controller)
+        working-directory: backend/emulator
+        run: python -m unittest discover -s tests -v
+      - name: Streamlit view and simulator tests
+        working-directory: frontend
+        run: python -m unittest discover -s tests -v
+      - name: Emulator smoke run
+        working-directory: backend/emulator
+        run: python device_emulator.py --duration 5 --quiet
+
+  javascript:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Scenario tests (dashboard JS controller)
+        run: node dashboard/tests/run_scenarios.js
