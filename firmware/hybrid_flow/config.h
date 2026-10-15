@@ -23,9 +23,10 @@
 #define PUMP_ON_RELAY SIM_INPUTS
 #endif
 
-// USE_DHT22 0: no DHT22 fitted; temperature reads a fixed SIM_TEMP_C.
+// USE_DHT22 1: a DHT22 is wired to GPIO4. 0 (default): none fitted;
+// temperature reads a fixed SIM_TEMP_C.
 #ifndef USE_DHT22
-#define USE_DHT22 1
+#define USE_DHT22 0
 #endif
 
 // WOKWI_SIM 1: running in the Wokwi simulator, whose relay modules switch on

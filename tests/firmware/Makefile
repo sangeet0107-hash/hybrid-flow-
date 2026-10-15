@@ -25,7 +25,7 @@ syntax:
 	$(SYNTAX) $(FW)/sensors.cpp $(FW)/cloud.cpp $(FW)/control_logic.cpp
 	$(SYNTAX) -DSIM_INPUTS=0 -include Arduino.h -x c++ $(FW)/hybrid_flow.ino
 	$(SYNTAX) -DSIM_INPUTS=0 $(FW)/sensors.cpp $(FW)/cloud.cpp
-	$(SYNTAX) -DWOKWI_SIM=1 -DUSE_DHT22=0 $(FW)/sensors.cpp
+	$(SYNTAX) -DWOKWI_SIM=1 -DUSE_DHT22=1 $(FW)/sensors.cpp
 	@echo "firmware compiles against the host stand-ins (bench, field and Wokwi profiles)"
 
 clean:

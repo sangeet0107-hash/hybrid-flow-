@@ -68,7 +68,7 @@ Each scenario can also be triggered on its own from the sidebar.
 
 The firmware's default profile (`SIM_INPUTS 1` in `config.h`) replaces the sensors with six potentiometers ("knobs"). Everything else is real: the ESP32 runs the full control logic, the four relays switch, the buzzer sounds and the data goes to Firebase and the dashboard. Turning a knob is how you change a sensor reading during the demo.
 
-**Parts:** ESP32 DevKit V1 (30-pin) and a micro-USB data cable, a 4-channel 5 V relay module, six 10 kΩ potentiometers, an active buzzer, a breadboard and jumper wires. Optional: a DHT22 (3-pin module) for real temperature; without it the firmware uses 30 °C (set `USE_DHT22 0`).
+**Parts:** ESP32 DevKit V1 (30-pin) and a micro-USB data cable, a 4-channel 5 V relay module, six 10 kΩ potentiometers, an active buzzer, a breadboard and jumper wires. Optional: a DHT22 (3-pin module) for real temperature; set `USE_DHT22 1` in `config.h` if you fit one. Without it the firmware uses a fixed 30 °C.
 
 ![Bench wiring](docs/bench-wiring.png)
 
