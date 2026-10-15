@@ -1,0 +1,41 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "devices": {
+      "$deviceId": {
+        ".read": true,
+        ".write": true,
+        ".validate": "$deviceId.matches(/^[a-z0-9-]{3,32}$/)",
+        "live": {
+          ".validate": "newData.hasChildren(['ts', 'sensors', 'state', 'totals'])",
+          "state": {
+            "source": { ".validate": "newData.val().matches(/^(SOLAR|GRID|NONE)$/)" },
+            "mode": { ".validate": "newData.val().matches(/^(AUTO|HOLD)$/)" }
+          }
+        },
+        "telemetry": {
+          ".indexOn": ["ts"],
+          "$sample": { ".validate": "newData.hasChildren(['ts'])" }
+        },
+        "events": {
+          ".indexOn": ["ts"],
+          "$event": {
+            ".validate": "newData.hasChildren(['ts', 'type', 'sev'])",
+            "sev": { ".validate": "newData.val().matches(/^(info|warn|crit)$/)" }
+          }
+        },
+        "command": {
+          ".validate": "newData.hasChildren(['seq', 'action'])",
+          "action": { ".validate": "newData.val().matches(/^(HOLD|AUTO|RESET_FAULT)$/)" },
+          "seq": { ".validate": "newData.isNumber()" }
+        },
+        "sim": {
+          ".validate": "newData.hasChildren(['seq', 'scenario'])",
+          "scenario": { ".validate": "newData.val().matches(/^(CLOUD|NIGHT|DAY|DRY_TANK|BLOCKAGE|JAM|HEATWAVE|TANK_FULL|WIFI_DROP|CLEAR)$/)" }
+        },
+        "$other": { ".validate": false }
+      }
+    }
+  }
+}

@@ -1,0 +1,141 @@
+{
+  "_comment": "Shared behaviour spec. The same scenarios run against the C++ firmware logic, the Python device emulator and the dashboard's JS simulator. The runner ticks every 100 ms. At the start of each step it applies 'in' (persisting) and 'cmd', then advances 'ms', then checks 'expect'. A null moisture means an invalid probe reading (NaN). 'events' must all have been emitted during that step. Numeric ranges are [min, max]. Invariants checked on every tick: the pump is never on with every valve closed, and the source relay never moves while the pump is on (or on the tick right after it was on).",
+  "tickMs": 100,
+  "meter": { "volts": 230, "powerFactor": 0.8 },
+  "defaults": { "solarV": 20, "z1": 55, "z2": 55, "tankPct": 50, "tempC": 30, "pumpA": 4.2, "flowLpm": 12, "floatHigh": false },
+  "scenarios": [
+    {
+      "name": "idle_when_soil_is_wet",
+      "steps": [
+        { "ms": 2000, "expect": { "phase": "IDLE", "pump": false, "source": "NONE", "valve1": false, "valve2": false } }
+      ]
+    },
+    {
+      "name": "solar_waters_driest_zone_valve_before_pump",
+      "init": { "z1": 45, "z2": 40 },
+      "steps": [
+        { "ms": 500, "expect": { "phase": "VALVE_OPENING", "valve2": true, "valve1": false, "pump": false, "source": "SOLAR", "relay": "SOLAR" }, "events": ["SOLAR_AVAILABLE", "ZONE_START"] },
+        { "ms": 1000, "expect": { "phase": "RUNNING", "pump": true, "valve2": true } },
+        { "ms": 200, "in": { "z2": 61 }, "expect": { "phase": "STOPPING", "pump": false, "valve2": true }, "events": ["ZONE_DONE"] },
+        { "ms": 600, "expect": { "phase": "VALVE_OPENING", "valve1": true, "valve2": false, "source": "SOLAR" } }
+      ]
+    },
+    {
+      "name": "grid_used_only_for_critical_zone_then_runs_to_target",
+      "init": { "solarV": 12, "z1": 40, "z2": 45 },
+      "steps": [
+        { "ms": 2000, "expect": { "phase": "IDLE", "source": "NONE", "pump": false } },
+        { "ms": 1500, "in": { "z1": 28 }, "expect": { "phase": "RUNNING", "source": "GRID", "relay": "GRID", "valve1": true, "pump": true }, "events": ["ZONE_START"] },
+        { "ms": 1000, "in": { "z1": 40 }, "expect": { "phase": "RUNNING", "source": "GRID" } },
+        { "ms": 1000, "in": { "z1": 60 }, "expect": { "phase": "IDLE", "pump": false, "source": "NONE" }, "events": ["ZONE_DONE"] }
+      ]
+    },
+    {
+      "name": "solar_debounce_ignores_short_dip",
+      "init": { "z1": 40 },
+      "steps": [
+        { "ms": 2000, "expect": { "phase": "RUNNING", "source": "SOLAR" } },
+        { "ms": 3000, "in": { "solarV": 15 }, "expect": { "phase": "RUNNING", "source": "SOLAR", "switches": 0 } },
+        { "ms": 3000, "in": { "solarV": 20 }, "expect": { "phase": "RUNNING", "source": "SOLAR", "switches": 0 } }
+      ]
+    },
+    {
+      "name": "solar_lost_with_non_critical_zone_stops",
+      "init": { "z1": 40 },
+      "steps": [
+        { "ms": 2000, "expect": { "phase": "RUNNING", "source": "SOLAR" } },
+        { "ms": 6000, "in": { "solarV": 12 }, "expect": { "phase": "IDLE", "pump": false, "source": "NONE", "switches": 0 }, "events": ["SOLAR_LOST", "ZONE_STOPPED"] }
+      ]
+    },
+    {
+      "name": "solar_lost_with_critical_zone_switches_break_before_make",
+      "init": { "z1": 25 },
+      "steps": [
+        { "ms": 2000, "expect": { "phase": "RUNNING", "source": "SOLAR", "relay": "SOLAR" } },
+        { "ms": 5300, "in": { "solarV": 12 }, "expect": { "phase": "SWITCH_SETTLE", "pump": false, "relay": "GRID" }, "events": ["SOLAR_LOST"] },
+        { "ms": 500, "expect": { "phase": "RUNNING", "source": "GRID", "pump": true, "switches": 1 }, "events": ["SOURCE_CHANGED"] },
+        { "ms": 6000, "in": { "solarV": 20 }, "expect": { "phase": "RUNNING", "source": "SOLAR", "relay": "SOLAR", "switches": 2 }, "events": ["SOLAR_AVAILABLE", "SOURCE_CHANGED"] }
+      ]
+    },
+    {
+      "name": "dry_run_trips_and_latches_until_reset",
+      "init": { "z1": 40, "pumpA": 0.3 },
+      "steps": [
+        { "ms": 3000, "expect": { "phase": "RUNNING", "pump": true } },
+        { "ms": 2500, "expect": { "phase": "FAULT", "fault": "DRY_RUN", "pump": false, "valve1": false, "alertLed": true }, "events": ["FAULT_DRY_RUN"] },
+        { "ms": 3000, "in": { "pumpA": 4.2 }, "expect": { "phase": "FAULT", "fault": "DRY_RUN", "pump": false } },
+        { "ms": 300, "cmd": "RESET_FAULT", "expect": { "phase": "VALVE_OPENING", "fault": "NONE", "valve1": true }, "events": ["FAULT_CLEARED", "ZONE_START"] }
+      ]
+    },
+    {
+      "name": "inrush_ignored_then_over_current_trips",
+      "init": { "z1": 40, "pumpA": 15 },
+      "steps": [
+        { "ms": 1500, "expect": { "phase": "RUNNING", "pump": true } },
+        { "ms": 1000, "in": { "pumpA": 4.2 }, "expect": { "phase": "RUNNING", "pump": true } },
+        { "ms": 200, "in": { "pumpA": 11 }, "expect": { "phase": "FAULT", "fault": "OVER_CURRENT", "pump": false, "valve1": false }, "events": ["FAULT_OVER_CURRENT"] }
+      ]
+    },
+    {
+      "name": "no_flow_trips_after_startup_delay",
+      "init": { "z1": 40, "flowLpm": 0.2 },
+      "steps": [
+        { "ms": 6000, "expect": { "phase": "RUNNING", "pump": true } },
+        { "ms": 4800, "expect": { "phase": "RUNNING", "pump": true } },
+        { "ms": 500, "expect": { "phase": "FAULT", "fault": "NO_FLOW", "pump": false }, "events": ["FAULT_NO_FLOW"] }
+      ]
+    },
+    {
+      "name": "tank_full_stops_with_hysteresis",
+      "init": { "z1": 40 },
+      "steps": [
+        { "ms": 2000, "expect": { "phase": "RUNNING" } },
+        { "ms": 800, "in": { "tankPct": 96 }, "expect": { "phase": "IDLE", "pump": false, "alertLed": true }, "events": ["TANK_FULL", "ZONE_STOPPED"] },
+        { "ms": 1000, "in": { "tankPct": 92 }, "expect": { "phase": "IDLE" } },
+        { "ms": 300, "in": { "tankPct": 85 }, "expect": { "phase": "VALVE_OPENING", "alertLed": false }, "events": ["TANK_OK", "ZONE_START"] }
+      ]
+    },
+    {
+      "name": "float_switch_backs_up_level_sensor",
+      "init": { "z1": 40 },
+      "steps": [
+        { "ms": 2000, "expect": { "phase": "RUNNING" } },
+        { "ms": 800, "in": { "floatHigh": true }, "expect": { "phase": "IDLE", "pump": false }, "events": ["TANK_FULL"] }
+      ]
+    },
+    {
+      "name": "operator_hold_and_resume",
+      "init": { "z1": 40 },
+      "steps": [
+        { "ms": 2000, "expect": { "phase": "RUNNING" } },
+        { "ms": 1000, "cmd": "HOLD", "expect": { "phase": "IDLE", "mode": "HOLD", "pump": false }, "events": ["MODE_HOLD", "ZONE_STOPPED"] },
+        { "ms": 2000, "expect": { "phase": "IDLE", "mode": "HOLD" } },
+        { "ms": 300, "cmd": "AUTO", "expect": { "phase": "VALVE_OPENING", "mode": "AUTO" }, "events": ["MODE_AUTO", "ZONE_START"] }
+      ]
+    },
+    {
+      "name": "temperature_alert_stops_with_hysteresis",
+      "init": { "z1": 40 },
+      "steps": [
+        { "ms": 2000, "expect": { "phase": "RUNNING" } },
+        { "ms": 1000, "in": { "tempC": 47 }, "expect": { "phase": "IDLE", "pump": false, "alertLed": true }, "events": ["TEMP_ALERT"] },
+        { "ms": 1000, "in": { "tempC": 44 }, "expect": { "phase": "IDLE" } },
+        { "ms": 300, "in": { "tempC": 40 }, "expect": { "phase": "VALVE_OPENING" }, "events": ["TEMP_OK"] }
+      ]
+    },
+    {
+      "name": "invalid_probe_is_skipped",
+      "init": { "z1": null, "z2": 40 },
+      "steps": [
+        { "ms": 500, "expect": { "phase": "VALVE_OPENING", "valve1": false, "valve2": true }, "events": ["SENSOR_WARN", "ZONE_START"] }
+      ]
+    },
+    {
+      "name": "metering_counts_solar_energy_and_litres",
+      "init": { "z1": 40 },
+      "steps": [
+        { "ms": 11100, "expect": { "phase": "RUNNING", "solarWh": [2.0, 2.3], "gridWh": [0, 0], "litres": [1.9, 2.1] } }
+      ]
+    }
+  ]
+}
