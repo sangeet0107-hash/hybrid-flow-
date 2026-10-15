@@ -434,14 +434,14 @@
 
   // ------------------------------------------------------------------ scenarios + tour
   const SCENARIOS = [
-    ["CLOUD", "Cloud cover", "Panel voltage drops under 18 V for 40 s"],
+    ["CLOUD", "Cloud cover", "Panel under 18 V for 40 s; Zone 2 made critical"],
     ["NIGHT", "Nightfall", "Jump the field clock to 19:30"],
     ["DAY", "Daybreak", "Jump the field clock to 10:00"],
-    ["DRY_TANK", "Tank runs dry", "Pump loses suction: dry-run trip"],
-    ["BLOCKAGE", "Blocked line", "Pump runs, water doesn't move: no-flow trip"],
-    ["JAM", "Jammed pump", "Locked rotor: over-current trip"],
+    ["DRY_TANK", "Tank runs dry", "Starts a run, then dry-run trip"],
+    ["BLOCKAGE", "Blocked line", "Starts a run, then no-flow trip"],
+    ["JAM", "Jammed pump", "Starts a run, then over-current trip"],
     ["HEATWAVE", "Heatwave", "Air temperature above 45 °C for 40 s"],
-    ["TANK_FULL", "Tank overfill", "Inlet overfills the tank past 95 %"],
+    ["TANK_FULL", "Tank overfill", "Tank jumps to 96 %: valves close"],
     ["WIFI_DROP", "Wi-Fi drop", "Device offline for 45 s, data buffered"],
     ["CLEAR", "Clear all", "Remove every injected condition"]
   ];

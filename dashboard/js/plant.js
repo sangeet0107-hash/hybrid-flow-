@@ -49,16 +49,22 @@
 
   var P = Plant.prototype;
 
+  // Pump faults only show while the pump runs: if it's idle, dry Zone 1
+  // below the critical level so the controller starts watering it.
+  P.forceRun = function () {
+    if (this.pumpOnSince === null) this.moisture[0] = Math.min(this.moisture[0], 26);
+  };
+
   P.trigger = function (name) {
     switch (name) {
-      case "CLOUD": this.cloudUntil = this.t + 40; break;
+      case "CLOUD": this.cloudUntil = this.t + 40; this.moisture[1] = Math.min(this.moisture[1], 24); break;
       case "NIGHT": this.clockMin = 19.5 * 60; break;
       case "DAY": this.clockMin = 10 * 60; break;
-      case "DRY_TANK": this.tank = 2; this.dryUntil = this.t + 90; break;
-      case "BLOCKAGE": this.blocked = true; break;
-      case "JAM": this.jammed = true; break;
+      case "DRY_TANK": this.tank = 2; this.dryUntil = this.t + 90; this.forceRun(); break;
+      case "BLOCKAGE": this.blocked = true; this.forceRun(); break;
+      case "JAM": this.jammed = true; this.forceRun(); break;
       case "HEATWAVE": this.heatUntil = this.t + 40; break;
-      case "TANK_FULL": this.tank = 93; this.overfillUntil = this.t + 25; break;
+      case "TANK_FULL": this.tank = 96; this.overfillUntil = this.t + 20; break;
       case "WIFI_DROP": this.wifiDownUntil = this.t + 45; break;
       case "CLEAR":
         this.cloudUntil = this.heatUntil = this.dryUntil = this.overfillUntil = this.wifiDownUntil = 0;

@@ -35,18 +35,28 @@ STOP_TEXT = {
     "SENSOR_INVALID": "probe reading invalid",
 }
 
-SCENARIOS = [
-    ("CLOUD", "Cloud cover", "Panel under 18 V for 40 s"),
-    ("NIGHT", "Nightfall", "Field clock to 19:30"),
-    ("DAY", "Daybreak", "Field clock to 10:00"),
-    ("DRY_TANK", "Tank runs dry", "Dry-run trip"),
-    ("BLOCKAGE", "Blocked line", "No-flow trip"),
-    ("JAM", "Jammed pump", "Over-current trip"),
-    ("HEATWAVE", "Heatwave", "Above 45 °C for 40 s"),
-    ("TANK_FULL", "Tank overfill", "Past 95 %"),
-    ("WIFI_DROP", "Wi-Fi drop", "Offline 45 s, data buffered"),
-    ("CLEAR", "Clear all", "Remove injected conditions"),
+SCENARIOS = [  # id, button label, tooltip, what happens (shown when clicked)
+    ("CLOUD", "Cloud cover", "Panel under 18 V for 40 s",
+     "Solar drops below 18 V and Zone 2 is made critical. After 5 s the pump changes over to grid."),
+    ("NIGHT", "Nightfall", "Field clock to 19:30",
+     "Clock set to 19:30. Solar is lost after 5 s; only a zone below 30 % will run, on grid."),
+    ("DAY", "Daybreak", "Field clock to 10:00",
+     "Clock set to 10:00. Solar comes back after 5 s."),
+    ("DRY_TANK", "Tank runs dry", "Dry-run trip",
+     "Tank emptied. The pump starts on Zone 1 and trips on dry run within about 5 s."),
+    ("BLOCKAGE", "Blocked line", "No-flow trip",
+     "Line blocked. The pump starts on Zone 1 and trips on no flow after about 11 s."),
+    ("JAM", "Jammed pump", "Over-current trip",
+     "Impeller jammed. The pump starts on Zone 1 and trips on over-current after about 1 s."),
+    ("HEATWAVE", "Heatwave", "Above 45 °C for 40 s",
+     "Temperature jumps above 45 °C. Irrigation pauses and the alarm sounds until it cools."),
+    ("TANK_FULL", "Tank overfill", "Past 95 %",
+     "Tank at 96 %. Valves close until the level falls below 90 %."),
+    ("WIFI_DROP", "Wi-Fi drop", "Offline 45 s, data buffered",
+     "Device offline for 45 s. The dashboard shows Device offline, then catches up with the buffered data."),
+    ("CLEAR", "Clear all", "Remove injected conditions", "All test conditions removed."),
 ]
+SCENARIO_NAMES = {sid: name for sid, name, _, _ in SCENARIOS}
 
 
 def esc(x) -> str:

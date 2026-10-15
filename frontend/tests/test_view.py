@@ -63,6 +63,37 @@ class SimSourceTests(unittest.TestCase):
         self.assertGreater(len(src.history), before)
 
 
+class ScenarioWhilePumpIdleTests(unittest.TestCase):
+    """Every scenario button must have a visible effect even if nothing is running."""
+
+    def idle_source(self):
+        src = SimSource()
+        src.plant.moisture = [58.0, 58.0]          # wet soil: controller stays idle
+        run_for(src, 3)
+        self.assertFalse(src.live["state"]["pump"])
+        return src
+
+    def test_pump_faults_trip_from_idle(self):
+        for scenario, fault, wait in (("JAM", "OVER_CURRENT", 4), ("DRY_TANK", "DRY_RUN", 8),
+                                      ("BLOCKAGE", "NO_FLOW", 14)):
+            src = self.idle_source()
+            src.scenario(scenario)
+            run_for(src, wait)
+            self.assertEqual(src.live["state"]["fault"], fault, scenario)
+
+    def test_cloud_from_idle_shows_grid_changeover(self):
+        src = self.idle_source()
+        src.scenario("CLOUD")
+        run_for(src, 9)
+        self.assertEqual(src.live["state"]["source"], "GRID")
+
+    def test_tank_overfill_closes_valves_at_once(self):
+        src = self.idle_source()
+        src.scenario("TANK_FULL")
+        run_for(src, 1.5)
+        self.assertTrue(src.live["state"]["tankFull"])
+
+
 class ViewTests(unittest.TestCase):
     def setUp(self):
         self.src = SimSource()

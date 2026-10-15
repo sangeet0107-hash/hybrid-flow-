@@ -96,9 +96,11 @@ with st.sidebar:
             ss.tour = {"runner": TourRunner(), "started": time.monotonic()}
             ss.tour_text = (f"Step 1 of {len(TOUR)} · waiting", "Waiting for a zone to start watering…")
     cols = st.columns(2)
-    for i, (sid, name, desc) in enumerate(view.SCENARIOS):
+    for i, (sid, name, desc, expect) in enumerate(view.SCENARIOS):
         if cols[i % 2].button(name, key=f"scn-{sid}", help=desc):
             send(ss.source.scenario, sid)
+            ss.last_scenario = (name, expect)
+            st.toast(f"{name}: {expect}")
 
 # ------------------------------------------------------------------ charts
 
@@ -196,6 +198,17 @@ def live_view() -> None:
     live = view.normalise(raw)
     advance_tour(live)
     state = live["state"]
+
+    active = [view.SCENARIO_NAMES.get(a, a) for a in live.get("simActive") or []]
+    last = ss.get("last_scenario")
+    if active or last:
+        lines = []
+        if active:
+            lines.append(f"<b>Test conditions active:</b> {view.esc(', '.join(active))}")
+        if last:
+            lines.append(f"<b>Last injected · {view.esc(last[0])}:</b> {view.esc(last[1])}")
+        st.markdown('<div class="hf"><div class="hf-tour" style="background:#f8e6d6;margin-bottom:8px">'
+                    + "<br>".join(lines) + "</div></div>", unsafe_allow_html=True)
 
     if ss.tour or ss.tour_text[1] != "":
         step, note = ss.tour_text
