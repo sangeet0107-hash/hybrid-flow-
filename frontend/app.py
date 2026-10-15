@@ -4,8 +4,11 @@
     pip install -r requirements.txt
     streamlit run app.py
 
-Opens on the built-in simulator. Use the sidebar to switch to Firebase and
-watch the ESP32, the Wokwi simulation or backend/emulator instead.
+Data sources (sidebar):
+  ESP32 over USB      the real board on the USB cable; no Wi-Fi needed
+  Wokwi simulator     the same firmware running in Wokwi for VS Code
+  Built-in simulator  the control logic in Python, no hardware at all
+  Firebase            a device publishing to the Realtime Database
 """
 from __future__ import annotations
 
@@ -24,7 +27,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend" / "emulat
 import hf_view as view  # noqa: E402
 from hybridflow.controller import Config  # noqa: E402
 from hybridflow.plant import TOUR, TourRunner  # noqa: E402
-from sources import FirebaseSource, SimSource  # noqa: E402
+from sources import FirebaseSource, SerialSource, SimSource, list_serial_ports  # noqa: E402
 
 C = Config()
 COL = view.COL
@@ -35,6 +38,7 @@ st.markdown(view.CSS, unsafe_allow_html=True)
 
 ss = st.session_state
 ss.setdefault("mode", "sim")
+ss.setdefault("port", "")
 ss.setdefault("db_url", "")
 ss.setdefault("device", "hf-001")
 ss.setdefault("auth", "")
@@ -49,17 +53,58 @@ if "source" not in ss:
 def send(fn, *args) -> None:
     try:
         fn(*args)
-    except Exception as exc:  # network errors from Firebase
+    except Exception as exc:  # network or USB errors
         st.toast(f"Couldn't send: {exc}")
 
 
 # ------------------------------------------------------------------ sidebar
 
+WOKWI_URL = "rfc2217://localhost:4000"
+MODES = {"serial": "ESP32 over USB", "wokwi": "Wokwi simulator", "sim": "Built-in simulator",
+         "firebase": "Firebase"}
+
+
+def switch(mode: str, source) -> None:
+    old = ss.get("source")
+    if hasattr(old, "close") and old is not source:
+        old.close()
+    ss.mode, ss.source, ss.tour = mode, source, None
+    ss.pop("last_scenario", None)
+    st.rerun()
+
+
 with st.sidebar:
     st.subheader("Data source")
-    choice = st.radio("Show data from", ["Built-in simulator", "Firebase (ESP32, Wokwi or emulator)"],
-                      index=0 if ss.mode == "sim" else 1, label_visibility="collapsed")
-    if choice.startswith("Firebase"):
+    labels = list(MODES.values())
+    choice = st.radio("Show data from", labels, index=list(MODES).index(ss.mode), label_visibility="collapsed")
+    picked = list(MODES)[labels.index(choice)]
+
+    if picked == "serial":
+        ports = list_serial_ports()
+        if not ports:
+            st.caption("No USB serial port found. Plug in the ESP32 (data cable), "
+                       "and install the CH340 or CP210x driver if Windows doesn't see it.")
+            if st.button("Look again"):
+                st.rerun()
+        else:
+            names = [f"{dev} · {desc}" for dev, desc in ports]
+            idx = next((i for i, (dev, _) in enumerate(ports) if dev == ss.port), 0)
+            sel = st.selectbox("Port", names, index=idx)
+            port = ports[names.index(sel)][0]
+            if ss.mode != "serial" or port != ss.port:
+                if st.button("Connect", type="primary"):
+                    ss.port = port
+                    switch("serial", SerialSource.get(port))
+            else:
+                st.caption("Close the Arduino Serial Monitor: only one program can use the port.")
+                if st.button("Click each relay (wiring test)"):
+                    send(ss.source.relay_test)
+    elif picked == "wokwi":
+        st.caption("Run the firmware in Wokwi for VS Code (README: Wokwi), then connect. "
+                   "Turn the knobs in the Wokwi window.")
+        if ss.mode != "wokwi" and st.button("Connect", type="primary"):
+            switch("wokwi", SerialSource.get(WOKWI_URL))
+    elif picked == "firebase":
         db = st.text_input("Realtime Database URL", value=ss.db_url,
                            placeholder="https://your-project-default-rtdb.firebaseio.com")
         device = st.text_input("Device ID", value=ss.device)
@@ -68,20 +113,28 @@ with st.sidebar:
             if not db.startswith("https://") or not (".firebaseio.com" in db or ".firebasedatabase.app" in db):
                 st.error("Enter the Realtime Database URL from the Firebase console.")
             else:
-                ss.mode, ss.db_url, ss.device, ss.auth = "firebase", db.strip(), device.strip() or "hf-001", auth.strip()
-                ss.source = FirebaseSource(ss.db_url, ss.device, ss.auth)
-                ss.tour = None
-                st.rerun()
+                ss.db_url, ss.device, ss.auth = db.strip(), device.strip() or "hf-001", auth.strip()
+                switch("firebase", FirebaseSource(ss.db_url, ss.device, ss.auth))
     elif ss.mode != "sim":
-        ss.mode = "sim"
-        ss.source = SimSource()
-        ss.tour = None
-        st.rerun()
+        switch("sim", SimSource())
     elif st.button("Restart simulator"):
-        ss.source = SimSource()
-        ss.tour = None
-        st.rerun()
+        switch("sim", SimSource())
 
+    if ss.mode in ("serial", "wokwi"):
+        st.divider()
+        st.subheader("Demo with the knobs")
+        st.markdown(
+            "- **Soil Zone 2** low → valve relay 3 clicks, pump relay 4 a second later\n"
+            "- **Soil Zone 2** past 60 % → pump stops, then the valve\n"
+            "- **Solar** below ¾ turn (18 V) with a zone below 30 % → after 5 s, relay 1 to grid\n"
+            "- **Current** to zero while pumping → dry-run trip in 3 s, buzzer\n"
+            "- **Current** fully up → over-current trip\n"
+            "- **Flow** to zero → no-flow trip after about 10 s\n"
+            "- **Tank** fully up → tank full, everything stops\n\n"
+            "Before **Reset fault**, turn the knob back to normal, or it trips again.")
+
+if ss.mode in ("sim", "firebase"):
+  with st.sidebar:
     st.divider()
     st.subheader("Test scenarios")
     if ss.mode == "sim":
@@ -189,7 +242,7 @@ def live_view() -> None:
     src = ss.source
     src.poll()
     raw = src.live
-    device = "hf-sim" if src.kind == "sim" else ss.device
+    device = {"sim": "hf-sim", "serial": "hf-001"}.get(src.kind, ss.device)
     st.markdown(view.header_html(src.status, raw, device), unsafe_allow_html=True)
 
     if not raw:
@@ -210,7 +263,7 @@ def live_view() -> None:
         st.markdown('<div class="hf"><div class="hf-tour" style="background:#f8e6d6;margin-bottom:8px">'
                     + "<br>".join(lines) + "</div></div>", unsafe_allow_html=True)
 
-    if ss.tour or ss.tour_text[1] != "":
+    if ss.mode in ("sim", "firebase") and (ss.tour or ss.tour_text[1] != ""):
         step, note = ss.tour_text
         st.markdown(f'<div class="hf"><div class="hf-tour"><b>Guided demo · {view.esc(step)}</b><br>'
                     f'{view.esc(note)}</div></div>', unsafe_allow_html=True)

@@ -1,0 +1,5 @@
+Hybrid-Flow 0.1.0 (hf-001)
+Relay test: relay 1 solar/grid
+@LIVE {"ts":{".sv":"timestamp"},"uptimeS":42,"fw":"0.1.0","inputs":"knobs","sensors":{"solarV":20.10,"soil":{"z1":44.5,"z2":null},"tankPct":55.0,"floatHigh":false,"tempC":30.0,"humidity":50.0,"lightPct":80,"pumpA":4.20,"flowLpm":12.0},"state":{"source":"SOLAR","relay":"SOLAR","pump":true,"valves":{"z1":false,"z2":true},"zone":2,"phase":"RUNNING","mode":"AUTO","fault":"NONE","solarAvailable":false,"tempAlert":false,"tankFull":false,"buzzer":false,"lastStop":"NONE"},"totals":{"solarWh":1.50,"gridWh":0.00,"litres":0.0,"litresZ1":0.0,"litresZ2":0.0,"switches":1,"faults":0},"net":{"rssi":0,"buffered":0}}
+@EVT {"ts":{".sv":"timestamp"},"type":"ZONE_DONE","sev":"info","zone":2,"value":1.00,"detail":"TARGET_REACHED"}
+@LIVE {broken

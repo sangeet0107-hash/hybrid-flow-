@@ -128,8 +128,18 @@
 #define EVENT_BUFFER         64
 
 // Wi-Fi and Firebase credentials live in secrets.h (copy secrets.example.h).
+// Without secrets.h the firmware runs offline: control, relays, buzzer and the
+// USB link to the Streamlit dashboard all work; only Firebase is skipped.
 #if __has_include("secrets.h")
 #include "secrets.h"
+#define CLOUD_ENABLED 1
 #else
-#error "Copy secrets.example.h to secrets.h and fill in your Wi-Fi and Firebase details"
+#define CLOUD_ENABLED 0
+#define WIFI_SSID ""
+#define WIFI_PASSWORD ""
+#define FIREBASE_DB_URL ""
+#define FIREBASE_AUTH ""
 #endif
+
+// USB link: one JSON line per second for the Streamlit dashboard ("ESP32 over USB").
+#define SERIAL_JSON_PERIOD_MS 1000

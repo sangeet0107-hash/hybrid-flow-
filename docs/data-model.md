@@ -1,6 +1,6 @@
 # Firebase data model
 
-Everything for one controller lives under `/devices/<deviceId>` in the Realtime Database. The ESP32 firmware, the Wokwi simulation and `backend/emulator` all write the same shapes, so the Streamlit and web dashboards work with any of them.
+Everything for one controller lives under `/devices/<deviceId>` in the Realtime Database. The ESP32 firmware, the Wokwi simulation and `backend/emulator` all write the same shapes, so the Streamlit dashboard works with any of them. (Over USB or from Wokwi the same `live` and `events` documents arrive as `@LIVE {json}` and `@EVT {json}` lines on the serial port.)
 
 | Path | Written by | How | Purpose |
 |---|---|---|---|

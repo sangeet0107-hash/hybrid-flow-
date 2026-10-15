@@ -1,7 +1,9 @@
-# Wokwi for VS Code: build the "wokwi" PlatformIO environment first
-#   pio run -e wokwi
+# Wokwi for VS Code. Build first:   pio run -e wokwi   (in this folder)
 # then run "Wokwi: Start Simulator" from the command palette.
+# The simulated ESP32's serial port is shared on localhost:4000, which the
+# Streamlit dashboard reads when you pick "Wokwi simulator".
 [wokwi]
 version = 1
 firmware = ".pio/build/wokwi/firmware.bin"
 elf = ".pio/build/wokwi/firmware.elf"
+rfc2217ServerPort = 4000

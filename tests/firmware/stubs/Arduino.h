@@ -40,6 +40,9 @@ class String {
 
 struct SerialStub {
   void begin(unsigned long) {}
+  size_t setTxBufferSize(size_t n) { return n; }
+  void print(const char*) {}
+  void println(const String&) {}
   int available() { return 0; }
   int read() { return -1; }
   void println(const char*) {}
