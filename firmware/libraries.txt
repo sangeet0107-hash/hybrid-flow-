@@ -1,0 +1,3 @@
+# Wokwi.com library list for the Hybrid-Flow sketch
+DHT sensor library
+Adafruit Unified Sensor

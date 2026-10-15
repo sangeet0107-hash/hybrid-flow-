@@ -1,0 +1,7 @@
+# Wokwi for VS Code: build the "wokwi" PlatformIO environment first
+#   pio run -e wokwi
+# then run "Wokwi: Start Simulator" from the command palette.
+[wokwi]
+version = 1
+firmware = ".pio/build/wokwi/firmware.bin"
+elf = ".pio/build/wokwi/firmware.elf"
