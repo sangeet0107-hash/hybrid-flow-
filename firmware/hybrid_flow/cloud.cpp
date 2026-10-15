@@ -61,6 +61,7 @@ String liveJson(const Snapshot& x) {
   s += "{\"ts\":"; ts(s, x.tsMs);
   s += ",\"uptimeS\":"; s += x.uptimeS;
   s += ",\"fw\":\"" FW_VERSION "\"";
+  s += SIM_INPUTS ? ",\"inputs\":\"knobs\"" : ",\"inputs\":\"sensors\"";
   s += ",\"sensors\":{\"solarV\":"; num(s, x.r.solarV);
   s += ",\"soil\":{\"z1\":"; num(s, x.r.soil[0], 1);
   s += ",\"z2\":"; num(s, x.r.soil[1], 1);

@@ -1,4 +1,5 @@
-// Sensing layer: reads the 7 sensors and converts them to engineering units.
+// Sensing layer: reads the 7 sensors (or, in the bench build, the knobs that
+// stand in for them) and converts them to engineering units.
 #pragma once
 
 #include <stdint.h>
@@ -22,7 +23,8 @@ struct Readings {
 class Sensors {
  public:
   void begin();
-  // Call every control cycle. Takes about 45 ms (current RMS window + ultrasonic).
+  // Call every control cycle. About 45 ms with real sensors (current RMS window
+  // + ultrasonic), about 2 ms with knobs.
   const Readings& read(uint32_t nowMs);
   // Measures the ACS712 zero point. Call with the pump off.
   void calibrateCurrentZero();
@@ -32,6 +34,7 @@ class Sensors {
 
  private:
   float readMv(int pin, int samples);
+  float knob(int pin);
   float soilPercent(float mv);
   float readTankPct();
   float readPumpA();

@@ -1,15 +1,19 @@
 #include "sensors.h"
 
 #include <Arduino.h>
-#include <DHT.h>
 #include <math.h>
 
 #include "config.h"
 
+#if USE_DHT22
+#include <DHT.h>
 static DHT dht(PIN_DHT, DHT22);
-static volatile uint32_t flowPulses = 0;
+#endif
 
+#if !SIM_INPUTS
+static volatile uint32_t flowPulses = 0;
 static void IRAM_ATTR onFlowPulse() { flowPulses = flowPulses + 1; }
+#endif
 
 hf::Inputs Readings::toInputs() const {
   hf::Inputs in;
@@ -26,16 +30,23 @@ hf::Inputs Readings::toInputs() const {
 void Sensors::begin() {
   analogReadResolution(12);
   analogSetAttenuation(ADC_11db);  // full 0-3.3 V range on ADC1
+#if !SIM_INPUTS
   pinMode(PIN_FLOAT, INPUT_PULLUP);
   pinMode(PIN_FLOW, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(PIN_FLOW), onFlowPulse, FALLING);
   pinMode(PIN_US_TRIG, OUTPUT);
   digitalWrite(PIN_US_TRIG, LOW);
   pinMode(PIN_US_ECHO, INPUT);
+  calibrateCurrentZero();
+#endif
+#if USE_DHT22
   dht.begin();
   r_.tempC = NAN;
   r_.humidity = NAN;
-  calibrateCurrentZero();
+#else
+  r_.tempC = SIM_TEMP_C;
+  r_.humidity = SIM_HUMIDITY;
+#endif
   lastFlowMs_ = millis();
 }
 
@@ -43,6 +54,14 @@ float Sensors::readMv(int pin, int samples) {
   uint32_t sum = 0;
   for (int i = 0; i < samples; i++) sum += analogReadMilliVolts(pin);
   return static_cast<float>(sum) / samples;
+}
+
+// Knob position from 0 (fully anticlockwise) to 1 (fully clockwise).
+float Sensors::knob(int pin) {
+  float f = readMv(pin, 16) / KNOB_FULL_MV;
+  if (f < 0) f = 0;
+  if (f > 1) f = 1;
+  return f;
 }
 
 void Sensors::calibrateCurrentZero() {
@@ -90,6 +109,22 @@ float Sensors::readPumpA() {
 }
 
 const Readings& Sensors::read(uint32_t now) {
+#if SIM_INPUTS
+  // Bench demo: each knob stands in for one sensor, in the same units the
+  // real sensor would report, so the control logic and its thresholds are
+  // exactly those of the field build.
+  float sun = knob(PIN_SOLAR_V);
+  r_.solarV = sun * SIM_SOLAR_MAX_V;
+  r_.lightPct = sun * 100.0f;                  // daylight follows the solar knob
+  r_.soil[0] = knob(PIN_SOIL_Z1) * 100.0f;     // clockwise = wetter
+  r_.soil[1] = knob(PIN_SOIL_Z2) * 100.0f;
+  r_.tankPct = knob(PIN_TANK_POT) * 100.0f;
+  r_.floatHigh = false;
+  // Current and flow only exist while the pump runs; the knobs set what the
+  // sensors would read then (turn to zero for a dry run or a blocked line).
+  r_.pumpA = pumpOn_ ? knob(PIN_CURRENT) * SIM_CURRENT_MAX_A : 0.0f;
+  r_.flowLpm = pumpOn_ ? knob(PIN_FLOW_POT) * SIM_FLOW_MAX_LPM : 0.0f;
+#else
   r_.solarV = readMv(PIN_SOLAR_V, 16) / 1000.0f * SOLAR_DIVIDER_RATIO;
   r_.soil[0] = soilPercent(readMv(PIN_SOIL_Z1, 16));
   r_.soil[1] = soilPercent(readMv(PIN_SOIL_Z2, 16));
@@ -98,29 +133,10 @@ const Readings& Sensors::read(uint32_t now) {
   r_.lightPct = LDR_INVERT ? 100.0f - light : light;
 
   r_.tankPct = readTankPct();
-  bool floatClosed = digitalRead(PIN_FLOAT) == (FLOAT_ACTIVE_LOW ? LOW : HIGH);
-  r_.floatHigh = floatClosed;
+  r_.floatHigh = digitalRead(PIN_FLOAT) == (FLOAT_ACTIVE_LOW ? LOW : HIGH);
 
-#if WOKWI_SIM
-  // Pots set what the current and flow sensors would read while the pump runs.
-  r_.pumpA = pumpOn_ ? readMv(PIN_CURRENT, 8) / 3300.0f * 12.0f : 0.0f;
-#else
   r_.pumpA = readPumpA();
-#endif
 
-  // DHT22 can only be read about every 2 s.
-  if (now - lastDhtMs_ >= 2500 || lastDhtMs_ == 0) {
-    lastDhtMs_ = now;
-    float t = dht.readTemperature();
-    float h = dht.readHumidity();
-    r_.tempC = t;  // NAN on a failed read; the controller raises a sensor warning
-    if (!isnan(h)) r_.humidity = h;
-  }
-
-#if WOKWI_SIM
-  r_.flowLpm = pumpOn_ ? readMv(PIN_FLOW_POT, 8) / 3300.0f * 20.0f : 0.0f;
-  return r_;
-#endif
   // Flow from pulses counted since the last call.
   uint32_t dt = now - lastFlowMs_;
   if (dt >= 500) {
@@ -132,5 +148,17 @@ const Readings& Sensors::read(uint32_t now) {
     lastFlowPulses_ = pulses;
     lastFlowMs_ = now;
   }
+#endif
+
+#if USE_DHT22
+  // DHT22 can only be read about every 2 s.
+  if (now - lastDhtMs_ >= 2500 || lastDhtMs_ == 0) {
+    lastDhtMs_ = now;
+    float t = dht.readTemperature();
+    float h = dht.readHumidity();
+    r_.tempC = t;  // NAN on a failed read; the controller raises a sensor warning
+    if (!isnan(h)) r_.humidity = h;
+  }
+#endif
   return r_;
 }

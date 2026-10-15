@@ -7,8 +7,8 @@ BITE401P Embedded Systems and IoT · Project Review 1
 ```mermaid
 flowchart LR
   subgraph Device["Device (any one of these)"]
-    ESP["ESP32 + 7 sensors + 5 actuators<br/>firmware/"]
-    WOK["Wokwi simulation of the same circuit<br/>firmware/diagram.json"]
+    ESP["ESP32 bench build (knobs + relays)<br/>or field build (7 sensors + 5 actuators)<br/>firmware/"]
+    WOK["Wokwi simulation of the bench build<br/>firmware/diagram.json"]
     EMU["Python device emulator<br/>backend/emulator/"]
   end
   FB[("Firebase Realtime Database<br/>/devices/hf-001")]
@@ -27,7 +27,7 @@ flowchart LR
 | Folder | What it is |
 |---|---|
 | `firmware/hybrid_flow/` | ESP32 Arduino sketch. `control_logic.*` is the switching and protection state machine with no Arduino dependencies; `sensors.*` reads the 7 sensors; `cloud.*` handles Wi-Fi, NTP and Firebase on core 0 with offline buffering. |
-| `firmware/diagram.json`, `wokwi.toml`, `libraries.txt`, `platformio.ini` | Wokwi simulation of the full circuit, and PlatformIO builds for hardware and Wokwi. |
+| `firmware/diagram.json`, `wokwi.toml`, `libraries.txt`, `platformio.ini` | Wokwi simulation of the bench build, and PlatformIO builds for the bench, field and Wokwi profiles. |
 | `frontend/` | **Streamlit dashboard** (Python). Runs its own simulator, or reads a real/Wokwi/emulated device from Firebase. |
 | `backend/firebase/` | Realtime Database security and validation rules. `firebase.json` at the root deploys them. |
 | `backend/emulator/` | Python package `hybridflow` (controller port, farm model, Firebase client) and `device_emulator.py`, which behaves exactly like the ESP32 on the network. |
@@ -64,29 +64,52 @@ Each scenario can also be triggered on its own from the sidebar.
    - **ESP32 hardware**: see below.
 3. **Open the dashboard.** In Streamlit choose *Firebase* in the sidebar, paste the URL and press Connect. Hold, Auto and Reset fault write to `/command`; the device picks them up within 3 s.
 
+## Bench build (about ₹1,000)
+
+The firmware's default profile (`SIM_INPUTS 1` in `config.h`) replaces the sensors with six potentiometers ("knobs"). Everything else is real: the ESP32 runs the full control logic, the four relays switch, the buzzer sounds and the data goes to Firebase and the dashboard. Turning a knob is how you change a sensor reading during the demo.
+
+**Parts:** ESP32 DevKit V1 (30-pin) and a micro-USB data cable, a 4-channel 5 V relay module, six 10 kΩ potentiometers, an active buzzer, a breadboard and jumper wires. Optional: a DHT22 (3-pin module) for real temperature; without it the firmware uses 30 °C (set `USE_DHT22 0`).
+
+![Bench wiring](docs/bench-wiring.png)
+
+| Connect | To ESP32 pin | Notes |
+|---|---|---|
+| Solar voltage knob (middle leg) | GPIO34 (D34) | 0–25 V; solar is available above 18 V (about ¾ turn) |
+| Soil Zone 1 knob | GPIO35 (D35) | 0–100 %, clockwise = wetter |
+| Soil Zone 2 knob | GPIO39 (VN) | 0–100 % |
+| Tank level knob | GPIO32 (D32) | 0–100 %; above 95 % stops irrigation |
+| Pump current knob | GPIO33 (D33) | 0–12 A, read only while the pump relay is on |
+| Water flow knob | GPIO36 (VP) | 0–20 L/min, read only while the pump relay is on |
+| Both outer legs of every knob | 3V3 and GND | either way round |
+| DHT22 DATA, +, − (optional) | GPIO4, 3V3, GND | |
+| Relay IN1 / IN2 / IN3 / IN4 | GPIO25 / GPIO16 (RX2) / GPIO17 (TX2) / GPIO18 | solar-grid, valve Zone 1, valve Zone 2, pump |
+| Relay VCC, GND | VIN (5 V), GND | |
+| Buzzer + (or I/O), − | GPIO19, GND | 3-pin module: VCC to 3V3 |
+
+The 30-pin ESP32 covers almost every hole of a standard breadboard, so leave it off the board and use male-female jumpers from its pins; put the knobs and the 3V3/GND rails on the breadboard.
+
+**Starting positions:** solar about ¾ turn (20 V), Zone 1 about half, Zone 2 about a quarter, tank about half, current about a third (4 A), flow about half (12 L/min). Zone 2 is below 30 %, so relay 3 clicks, then relay 4 a second later.
+
+**Demo with the knobs:**
+- Turn **Zone 2** clockwise past 60 %: relay 4 (pump) clicks off, then relay 3 (valve).
+- Turn **solar** below about ¾ while Zone 2 is below 30 %: after 5 s the pump stops, relay 1 clicks to grid, and the pump restarts.
+- Turn **current** to zero while the pump runs: dry-run trip after 3 s, buzzer alarm.
+- Turn **current** fully clockwise: over-current trip.
+- Turn **flow** to zero: no-flow trip after about 10 s.
+- Turn **tank** fully clockwise: tank full, everything stops.
+- Reset a fault from the dashboard or by typing `r` in the serial monitor (`h` = hold, `a` = auto).
+
+**If something is inverted:** relays on when they should be off means your module is high-level trigger: set `RELAY_ACTIVE_LOW 0`. A buzzer that beeps when it should be quiet: set `BUZZER_ACTIVE_LOW 1`. If the ESP32 restarts when relays click, power the relay module's VCC from a separate 5 V phone charger (keep GND shared).
+
+To build with the real sensors instead, set `SIM_INPUTS 0` (or `pio run -e field`).
+
 ## Wokwi simulation
 
-`firmware/diagram.json` wires the ESP32 DevKit to the same pins as the review's pin table:
+`firmware/diagram.json` is the bench build above in the Wokwi simulator: the same six knobs on the same pins, four relay modules with LEDs on their outputs (Solar/Grid, Valve Z1, Valve Z2, Pump), a DHT22 and a buzzer. Try your wiring and the knob demo here before you build it.
 
-| Wokwi part | Stands in for | GPIO |
-|---|---|---|
-| Potentiometer `pot_solar` | Solar voltage divider (full scale 26 V; start value 20 V) | 34 |
-| Potentiometers `pot_soil1`, `pot_soil2` | Capacitive soil probes, Zone 1 and Zone 2 (turn right = drier) | 35, 39 (VN) |
-| Photoresistor module | LDR | 32 |
-| DHT22 | Temperature and humidity (click it to change values) | 4 |
-| HC-SR04 | Tank level (click it to change the distance; 120 cm = empty, 10 cm = full) | 13 trig, 14 echo |
-| Push button | Overflow float switch (hold = tank full) | 26 |
-| Potentiometers `pot_current`, `pot_flow` | ACS712 current and YF-S201 flow, read only while the pump is on (Wokwi has no flow sensor part) | 33, 36 (VP) |
-| Relay module `relay_src` + Solar/Grid LEDs | CH1 source changeover | 25 |
-| Relay modules `relay_z1`, `relay_z2` + valve LEDs | Zone solenoid valves | 16, 17 |
-| Green LED | Pump-enable SSR | 18 |
-| Buzzer, red LED | Alerts | 19, 23 |
+**On wokwi.com:** start a new ESP32 project, replace `sketch.ino` with `hybrid_flow.ino`, add the other files from `firmware/hybrid_flow/` as new files, and paste `diagram.json` and `libraries.txt` over the project's own. In `config.h` change `#define WOKWI_SIM 0` to `1` (Wokwi's relay modules switch on HIGH). Create `secrets.h` from `secrets.example.h` with SSID `Wokwi-GUEST`, an empty password and your database URL.
 
-At start Zone 2 reads 25 % with the panel at 20 V, so the Zone 2 valve LED lights, then the pump LED a second later, on solar. Things to try: turn `pot_soil2` left past 60 % and the zone finishes (pump first, valve half a second later). Turn `pot_solar` left below 18 V while Zone 2 is below 30 %: after 5 s the Solar LED goes out and the Grid LED comes on, with the pump LED blinking off across the changeover. Turn `pot_current` to zero while the pump runs for a dry-run trip, or `pot_flow` to zero for a no-flow trip. Type `r` in the serial monitor to reset a fault, `h` to hold, `a` for auto.
-
-**On wokwi.com:** start a new ESP32 project, replace `sketch.ino` with `hybrid_flow.ino`, add the other files from `firmware/hybrid_flow/` as new files, and paste `diagram.json` and `libraries.txt` over the project's own. In `config.h` change `#define WOKWI_SIM 0` to `1`. Create `secrets.h` from `secrets.example.h` with SSID `Wokwi-GUEST`, an empty password and your database URL. The simulated ESP32 then publishes to Firebase like real hardware.
-
-**In VS Code:** install the PlatformIO and Wokwi extensions, create `firmware/hybrid_flow/secrets.h` as above, run `pio run -e wokwi` in `firmware/`, then *Wokwi: Start Simulator*. The `wokwi` environment sets `WOKWI_SIM=1` for you.
+**In VS Code:** install the PlatformIO and Wokwi extensions, create `firmware/hybrid_flow/secrets.h` as above, run `pio run -e wokwi` in `firmware/`, then *Wokwi: Start Simulator*.
 
 ## ESP32 hardware
 

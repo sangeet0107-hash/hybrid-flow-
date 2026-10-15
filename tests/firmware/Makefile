@@ -19,11 +19,14 @@ run: test_control_logic
 	./test_control_logic
 
 FW = ../../firmware/hybrid_flow
+SYNTAX = $(CXX) -std=gnu++17 -Wall -Wextra -Werror -Wno-unused-parameter -fsyntax-only -Istubs
 syntax:
-	$(CXX) -std=gnu++17 -Wall -Wextra -Werror -Wno-unused-parameter -fsyntax-only -Istubs -include Arduino.h -x c++ $(FW)/hybrid_flow.ino
-	$(CXX) -std=gnu++17 -Wall -Wextra -Werror -Wno-unused-parameter -fsyntax-only -Istubs $(FW)/sensors.cpp $(FW)/cloud.cpp $(FW)/control_logic.cpp
-	$(CXX) -std=gnu++17 -Wall -Wextra -Werror -Wno-unused-parameter -fsyntax-only -Istubs -DWOKWI_SIM=1 $(FW)/sensors.cpp
-	@echo "firmware compiles against the host stand-ins"
+	$(SYNTAX) -include Arduino.h -x c++ $(FW)/hybrid_flow.ino
+	$(SYNTAX) $(FW)/sensors.cpp $(FW)/cloud.cpp $(FW)/control_logic.cpp
+	$(SYNTAX) -DSIM_INPUTS=0 -include Arduino.h -x c++ $(FW)/hybrid_flow.ino
+	$(SYNTAX) -DSIM_INPUTS=0 $(FW)/sensors.cpp $(FW)/cloud.cpp
+	$(SYNTAX) -DWOKWI_SIM=1 -DUSE_DHT22=0 $(FW)/sensors.cpp
+	@echo "firmware compiles against the host stand-ins (bench, field and Wokwi profiles)"
 
 clean:
 	rm -f test_control_logic test_control_logic.exe scenarios.inc

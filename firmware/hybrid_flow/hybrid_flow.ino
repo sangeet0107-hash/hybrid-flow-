@@ -4,6 +4,9 @@
 // Core 1 (this loop): read 7 sensors -> control logic -> drive 5 actuators at 10 Hz.
 // Core 0 (cloud task): Wi-Fi, NTP and Firebase uploads, with offline buffering.
 //
+// Build profile (config.h): SIM_INPUTS 1 = bench demo with knobs for the sensors
+// (default), 0 = field build with the real sensors.
+//
 // Libraries: "DHT sensor library" and "Adafruit Unified Sensor" (Library Manager).
 // Board: ESP32 Dev Module (esp32 by Espressif, core 2.x or 3.x).
 //
@@ -29,13 +32,13 @@ static void writePin(int pin, bool on, bool activeLow) {
 // Applies outputs in a safe order: anything that turns the pump off goes
 // first, anything that turns it on goes last.
 static void writeOutputs(const hf::Outputs& o) {
-  if (!o.pumpOn) writePin(PIN_PUMP_SSR, false, false);
+  if (!o.pumpOn) writePin(PIN_PUMP_SSR, false, PUMP_ACTIVE_LOW);
   writePin(PIN_RELAY_SOURCE, o.relayGrid, RELAY_ACTIVE_LOW);
   writePin(PIN_RELAY_ZONE1, o.valve[0], RELAY_ACTIVE_LOW);
   writePin(PIN_RELAY_ZONE2, o.valve[1], RELAY_ACTIVE_LOW);
-  writePin(PIN_BUZZER, o.buzzer, false);
+  writePin(PIN_BUZZER, o.buzzer, BUZZER_ACTIVE_LOW);
   writePin(PIN_ALERT_LED, o.alertLed, false);
-  if (o.pumpOn) writePin(PIN_PUMP_SSR, true, false);
+  if (o.pumpOn) writePin(PIN_PUMP_SSR, true, PUMP_ACTIVE_LOW);
 }
 
 static void initOutputs() {
@@ -89,6 +92,7 @@ void setup() {
   Serial.begin(115200);
   delay(200);
   Serial.println("\nHybrid-Flow " FW_VERSION " (" DEVICE_ID ")");
+  Serial.println(SIM_INPUTS ? "Bench build: knobs stand in for the sensors" : "Field build: real sensors");
 
   sensors.begin();
   controller.begin(millis());

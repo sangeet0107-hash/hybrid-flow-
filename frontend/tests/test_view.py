@@ -116,6 +116,13 @@ class ViewTests(unittest.TestCase):
                   "TANK_FULL", "TANK_OK", "TEMP_ALERT", "TEMP_OK", "SENSOR_WARN", "MODE_HOLD", "MODE_AUTO"]:
             self.assertNotEqual(view.event_text({"type": t, "zone": 1, "value": 1.0}), t)
 
+    def test_bench_build_labels_knobs(self):
+        live = dict(self.live, inputs="knobs")
+        tags = [t["tag"] for t in view.tiles(live)]
+        self.assertIn("Knob · GPIO34", tags)
+        self.assertIn("Knob · GPIO32", tags)
+        self.assertIn("Bench build", view.header_html({"link": "online", "note": "Reading from Firebase"}, live, "hf-001"))
+
     def test_sparse_firebase_document(self):
         live = view.normalise({"ts": int(time.time() * 1000), "sensors": {"solarV": 12.0},
                                "state": {"fault": "NO_FLOW"}})
