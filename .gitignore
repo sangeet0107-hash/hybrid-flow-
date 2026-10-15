@@ -1,0 +1,25 @@
+# credentials
+firmware/hybrid_flow/secrets.h
+.firebaserc
+.env
+
+# build output
+.pio/
+firmware/.pio/
+tests/firmware/test_control_logic
+tests/firmware/test_control_logic.exe
+tests/firmware/scenarios.inc
+build/
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# editors and OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
