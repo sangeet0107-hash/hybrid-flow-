@@ -19,13 +19,25 @@ run: test_control_logic
 	./test_control_logic
 
 FW = ../../firmware/hybrid_flow
+SYNTAX = $(CXX) -std=gnu++17 -Wall -Wextra -Werror -Wno-unused-parameter -fsyntax-only -Istubs
+ONLINE = -Istubs/with_secrets
 syntax:
-	$(CXX) -std=gnu++17 -Wall -Wextra -Werror -Wno-unused-parameter -fsyntax-only -Istubs -include Arduino.h -x c++ $(FW)/hybrid_flow.ino
-	$(CXX) -std=gnu++17 -Wall -Wextra -Werror -Wno-unused-parameter -fsyntax-only -Istubs $(FW)/sensors.cpp $(FW)/cloud.cpp $(FW)/control_logic.cpp
-	$(CXX) -std=gnu++17 -Wall -Wextra -Werror -Wno-unused-parameter -fsyntax-only -Istubs -DWOKWI_SIM=1 $(FW)/sensors.cpp
-	@echo "firmware compiles against the host stand-ins"
+	$(SYNTAX) $(ONLINE) -include Arduino.h -x c++ $(FW)/hybrid_flow.ino
+	$(SYNTAX) $(ONLINE) $(FW)/sensors.cpp $(FW)/cloud.cpp $(FW)/control_logic.cpp
+	$(SYNTAX) -include Arduino.h -x c++ $(FW)/hybrid_flow.ino
+	$(SYNTAX) $(FW)/cloud.cpp
+	$(SYNTAX) $(ONLINE) -DSIM_INPUTS=0 -include Arduino.h -x c++ $(FW)/hybrid_flow.ino
+	$(SYNTAX) $(ONLINE) -DSIM_INPUTS=0 $(FW)/sensors.cpp $(FW)/cloud.cpp
+	$(SYNTAX) $(ONLINE) -DWOKWI_SIM=1 -DUSE_DHT22=1 $(FW)/sensors.cpp
+	@echo "firmware compiles against the host stand-ins (bench online/offline, field and Wokwi profiles)"
+
+json_check: json_check.cpp stubs/stub_impl.cpp $(FW)/cloud.cpp $(SRC)
+	$(CXX) -std=gnu++17 -Wno-unused-parameter -Istubs -I$(FW) -o $@ json_check.cpp stubs/stub_impl.cpp $(FW)/cloud.cpp $(SRC)
+
+serial-lines.txt: json_check
+	./json_check > $@
 
 clean:
-	rm -f test_control_logic test_control_logic.exe scenarios.inc
+	rm -f test_control_logic test_control_logic.exe scenarios.inc json_check serial-lines.txt
 
 .PHONY: all run syntax clean

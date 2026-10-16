@@ -5,6 +5,7 @@
 // telemetry and events are buffered here and uploaded on reconnect.
 #pragma once
 
+#include <Arduino.h>
 #include <stdint.h>
 
 #include "control_logic.h"
@@ -44,5 +45,9 @@ void queueEvent(const EventMsg& e);
 bool takeCommand(hf::Command& out);    // operator command from the dashboard, if any
 bool online();
 int buffered();
+
+// The same JSON documents that go to Firebase, for the USB link.
+String liveJson(const Snapshot& s);
+String eventJson(const EventMsg& e);
 
 }  // namespace cloud

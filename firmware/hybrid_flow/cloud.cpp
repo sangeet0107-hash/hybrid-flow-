@@ -55,12 +55,13 @@ const char* sevName(hf::Severity v) {
   return v == hf::Severity::CRIT ? "crit" : v == hf::Severity::WARN ? "warn" : "info";
 }
 
-String liveJson(const Snapshot& x) {
+String liveJsonImpl(const Snapshot& x) {
   String s;
   s.reserve(900);
   s += "{\"ts\":"; ts(s, x.tsMs);
   s += ",\"uptimeS\":"; s += x.uptimeS;
   s += ",\"fw\":\"" FW_VERSION "\"";
+  s += SIM_INPUTS ? ",\"inputs\":\"knobs\"" : ",\"inputs\":\"sensors\"";
   s += ",\"sensors\":{\"solarV\":"; num(s, x.r.solarV);
   s += ",\"soil\":{\"z1\":"; num(s, x.r.soil[0], 1);
   s += ",\"z2\":"; num(s, x.r.soil[1], 1);
@@ -118,7 +119,7 @@ String telemetryJson(const Snapshot& x) {
   return s;
 }
 
-String eventJson(const EventMsg& e) {
+String eventJsonImpl(const EventMsg& e) {
   String s;
   s.reserve(140);
   s += "{\"ts\":"; ts(s, e.tsMs);
@@ -248,7 +249,7 @@ void task(void*) {
       bool have = peekEvent(e);
       xSemaphoreGive(lock);
       if (!have) break;
-      good = ok(request("POST", "events", eventJson(e)));
+      good = ok(request("POST", "events", eventJsonImpl(e)));
       if (good) {
         xSemaphoreTake(lock, portMAX_DELAY);
         dropEvent();
@@ -280,7 +281,7 @@ void task(void*) {
       }
       xSemaphoreGive(lock);
       if (have) {
-        good = ok(request("PUT", "live", liveJson(s)));
+        good = ok(request("PUT", "live", liveJsonImpl(s)));
         lastLiveSent = now;
       }
     }
@@ -297,7 +298,11 @@ void task(void*) {
 
 }  // namespace
 
+String liveJson(const Snapshot& s) { return liveJsonImpl(s); }
+String eventJson(const EventMsg& e) { return eventJsonImpl(e); }
+
 void begin() {
+  if (!CLOUD_ENABLED) return;  // no secrets.h: run offline
   lock = xSemaphoreCreateMutex();
   WiFi.mode(WIFI_STA);
   xTaskCreatePinnedToCore(task, "cloud", 12288, nullptr, 1, nullptr, 0);
@@ -311,6 +316,7 @@ uint64_t epochMs() {
 }
 
 void publishLive(const Snapshot& s) {
+  if (!lock) return;
   xSemaphoreTake(lock, portMAX_DELAY);
   liveSnap = s;
   liveFresh = true;
@@ -318,6 +324,7 @@ void publishLive(const Snapshot& s) {
 }
 
 void queueTelemetry(const Snapshot& s) {
+  if (!lock) return;
   xSemaphoreTake(lock, portMAX_DELAY);
   int tail = (tHead + tCount) % TELEMETRY_BUFFER;
   telemetry[tail] = s;
@@ -327,6 +334,7 @@ void queueTelemetry(const Snapshot& s) {
 }
 
 void queueEvent(const EventMsg& e) {
+  if (!lock) return;
   xSemaphoreTake(lock, portMAX_DELAY);
   int tail = (eHead + eCount) % EVENT_BUFFER;
   events[tail] = e;
@@ -336,6 +344,7 @@ void queueEvent(const EventMsg& e) {
 }
 
 bool takeCommand(hf::Command& out) {
+  if (!lock) return false;
   xSemaphoreTake(lock, portMAX_DELAY);
   bool had = cmdPending;
   if (had) {

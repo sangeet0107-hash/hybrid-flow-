@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 780" width="1000" height="780" font-family="Segoe UI, Arial, sans-serif">
+<rect width="1000" height="780" fill="#ffffff"/>
+<text x="24" y="38" font-size="24" font-weight="700" fill="#17201b">Hybrid-Flow bench build: wiring</text>
+<text x="24" y="62" font-size="14" fill="#5b6961">Knobs stand in for the sensors. ESP32 powered from the laptop by USB. All grounds connected together.</text>
+<rect x="380" y="100" width="220" height="560" rx="10" fill="#1f2b38"/>
+
+<text x="490" y="128" font-size="18" font-weight="700" fill="#ffffff" text-anchor="middle">ESP32</text>
+<text x="490" y="620" font-size="13" fill="#d9e1e8" text-anchor="middle">DevKit V1 (30-pin)</text>
+<rect x="470" y="638" width="40" height="22" rx="3" fill="#9aa7b3"/>
+<text x="490" y="680" font-size="13" fill="#5b6961" text-anchor="middle">USB to laptop (power + code)</text>
+<circle cx="380" cy="150" r="5" fill="#e8c35a" stroke="#1f2b38"/>
+<text x="392" y="155" font-size="13" fill="#ffffff">GPIO34 (D34)</text>
+<circle cx="90" cy="150" r="20" fill="#f5f7f3" stroke="#17201b" stroke-width="2"/>
+<line x1="90" y1="150" x2="100" y2="136" stroke="#17201b" stroke-width="3" stroke-linecap="round"/>
+<text x="120" y="144" font-size="14" font-weight="600" fill="#17201b">Solar voltage</text>
+<text x="120" y="162" font-size="12" fill="#5b6961">10 kΩ knob · middle leg</text>
+<path d="M110 150 H300 V150 H380" fill="none" stroke="#0a7a75" stroke-width="3" stroke-linejoin="round"/>
+<circle cx="380" cy="212" r="5" fill="#e8c35a" stroke="#1f2b38"/>
+<text x="392" y="217" font-size="13" fill="#ffffff">GPIO35 (D35)</text>
+<circle cx="90" cy="212" r="20" fill="#f5f7f3" stroke="#17201b" stroke-width="2"/>
+<line x1="90" y1="212" x2="100" y2="198" stroke="#17201b" stroke-width="3" stroke-linecap="round"/>
+<text x="120" y="206" font-size="14" font-weight="600" fill="#17201b">Soil moisture, Zone 1</text>
+<text x="120" y="224" font-size="12" fill="#5b6961">10 kΩ knob · middle leg</text>
+<path d="M110 212 H300 V212 H380" fill="none" stroke="#0a7a75" stroke-width="3" stroke-linejoin="round"/>
+<circle cx="380" cy="274" r="5" fill="#e8c35a" stroke="#1f2b38"/>
+<text x="392" y="279" font-size="13" fill="#ffffff">GPIO39 (VN)</text>
+<circle cx="90" cy="274" r="20" fill="#f5f7f3" stroke="#17201b" stroke-width="2"/>
+<line x1="90" y1="274" x2="100" y2="260" stroke="#17201b" stroke-width="3" stroke-linecap="round"/>
+<text x="120" y="268" font-size="14" font-weight="600" fill="#17201b">Soil moisture, Zone 2</text>
+<text x="120" y="286" font-size="12" fill="#5b6961">10 kΩ knob · middle leg</text>
+<path d="M110 274 H300 V274 H380" fill="none" stroke="#0a7a75" stroke-width="3" stroke-linejoin="round"/>
+<circle cx="380" cy="336" r="5" fill="#e8c35a" stroke="#1f2b38"/>
+<text x="392" y="341" font-size="13" fill="#ffffff">GPIO32 (D32)</text>
+<circle cx="90" cy="336" r="20" fill="#f5f7f3" stroke="#17201b" stroke-width="2"/>
+<line x1="90" y1="336" x2="100" y2="322" stroke="#17201b" stroke-width="3" stroke-linecap="round"/>
+<text x="120" y="330" font-size="14" font-weight="600" fill="#17201b">Tank level</text>
+<text x="120" y="348" font-size="12" fill="#5b6961">10 kΩ knob · middle leg</text>
+<path d="M110 336 H300 V336 H380" fill="none" stroke="#0a7a75" stroke-width="3" stroke-linejoin="round"/>
+<circle cx="380" cy="398" r="5" fill="#e8c35a" stroke="#1f2b38"/>
+<text x="392" y="403" font-size="13" fill="#ffffff">GPIO33 (D33)</text>
+<circle cx="90" cy="398" r="20" fill="#f5f7f3" stroke="#17201b" stroke-width="2"/>
+<line x1="90" y1="398" x2="100" y2="384" stroke="#17201b" stroke-width="3" stroke-linecap="round"/>
+<text x="120" y="392" font-size="14" font-weight="600" fill="#17201b">Pump current</text>
+<text x="120" y="410" font-size="12" fill="#5b6961">10 kΩ knob · middle leg</text>
+<path d="M110 398 H300 V398 H380" fill="none" stroke="#0a7a75" stroke-width="3" stroke-linejoin="round"/>
+<circle cx="380" cy="460" r="5" fill="#e8c35a" stroke="#1f2b38"/>
+<text x="392" y="465" font-size="13" fill="#ffffff">GPIO36 (VP)</text>
+<circle cx="90" cy="460" r="20" fill="#f5f7f3" stroke="#17201b" stroke-width="2"/>
+<line x1="90" y1="460" x2="100" y2="446" stroke="#17201b" stroke-width="3" stroke-linecap="round"/>
+<text x="120" y="454" font-size="14" font-weight="600" fill="#17201b">Water flow</text>
+<text x="120" y="472" font-size="12" fill="#5b6961">10 kΩ knob · middle leg</text>
+<path d="M110 460 H300 V460 H380" fill="none" stroke="#0a7a75" stroke-width="3" stroke-linejoin="round"/>
+<circle cx="380" cy="560" r="5" fill="#e8c35a" stroke="#1f2b38"/>
+<text x="392" y="565" font-size="13" fill="#ffffff">GPIO4 (D4)</text>
+<rect x="60" y="532" width="70" height="56" rx="6" fill="#ffffff" stroke="#17201b" stroke-width="2"/>
+<text x="95" y="565" font-size="14" font-weight="700" fill="#17201b" text-anchor="middle">DHT22</text>
+<text x="140" y="554" font-size="14" font-weight="600" fill="#17201b">Temperature (optional)</text>
+<text x="140" y="572" font-size="12" fill="#5b6961">DATA pin · + to 3V3 · − to GND</text>
+<path d="M130 560 H300 V560 H380" fill="none" stroke="#0a7a75" stroke-width="3" stroke-linejoin="round"/>
+<circle cx="380" cy="620" r="5" fill="#e8c35a" stroke="#1f2b38"/>
+<text x="392" y="625" font-size="13" fill="#ffffff">3V3</text>
+<circle cx="380" cy="646" r="5" fill="#e8c35a" stroke="#1f2b38"/>
+<text x="392" y="651" font-size="13" fill="#ffffff">GND</text>
+
+
+
+
+<rect x="730" y="120" width="230" height="300" rx="8" fill="#e1e8fa" stroke="#17201b" stroke-width="2"/>
+<text x="845.0" y="148" font-size="16" font-weight="700" fill="#17201b" text-anchor="middle">4-channel relay module</text>
+<text x="845.0" y="166" font-size="12" fill="#5b6961" text-anchor="middle">5 V, low-level trigger</text>
+<circle cx="600" cy="200" r="5" fill="#e8c35a" stroke="#1f2b38"/>
+<text x="588" y="205" font-size="13" fill="#ffffff" text-anchor="end">GPIO25 (D25)</text>
+<circle cx="730" cy="200" r="5" fill="#ffffff" stroke="#17201b"/>
+<text x="742" y="198" font-size="13" font-weight="700" fill="#17201b">IN1</text>
+<text x="742" y="214" font-size="12" fill="#5b6961">Relay 1: solar / grid</text>
+<path d="M600 200 H665 V200 H730" fill="none" stroke="#7a3fb0" stroke-width="3" stroke-linejoin="round"/>
+<circle cx="600" cy="248" r="5" fill="#e8c35a" stroke="#1f2b38"/>
+<text x="588" y="253" font-size="13" fill="#ffffff" text-anchor="end">GPIO16 (RX2)</text>
+<circle cx="730" cy="248" r="5" fill="#ffffff" stroke="#17201b"/>
+<text x="742" y="246" font-size="13" font-weight="700" fill="#17201b">IN2</text>
+<text x="742" y="262" font-size="12" fill="#5b6961">Relay 2: valve, Zone 1</text>
+<path d="M600 248 H665 V248 H730" fill="none" stroke="#7a3fb0" stroke-width="3" stroke-linejoin="round"/>
+<circle cx="600" cy="296" r="5" fill="#e8c35a" stroke="#1f2b38"/>
+<text x="588" y="301" font-size="13" fill="#ffffff" text-anchor="end">GPIO17 (TX2)</text>
+<circle cx="730" cy="296" r="5" fill="#ffffff" stroke="#17201b"/>
+<text x="742" y="294" font-size="13" font-weight="700" fill="#17201b">IN3</text>
+<text x="742" y="310" font-size="12" fill="#5b6961">Relay 3: valve, Zone 2</text>
+<path d="M600 296 H665 V296 H730" fill="none" stroke="#7a3fb0" stroke-width="3" stroke-linejoin="round"/>
+<circle cx="600" cy="344" r="5" fill="#e8c35a" stroke="#1f2b38"/>
+<text x="588" y="349" font-size="13" fill="#ffffff" text-anchor="end">GPIO18 (D18)</text>
+<circle cx="730" cy="344" r="5" fill="#ffffff" stroke="#17201b"/>
+<text x="742" y="342" font-size="13" font-weight="700" fill="#17201b">IN4</text>
+<text x="742" y="358" font-size="12" fill="#5b6961">Relay 4: pump</text>
+<path d="M600 344 H665 V344 H730" fill="none" stroke="#7a3fb0" stroke-width="3" stroke-linejoin="round"/>
+<circle cx="600" cy="380" r="5" fill="#e8c35a" stroke="#1f2b38"/>
+<text x="588" y="385" font-size="13" fill="#ffffff" text-anchor="end">VIN (5 V)</text>
+<circle cx="600" cy="406" r="5" fill="#e8c35a" stroke="#1f2b38"/>
+<text x="588" y="411" font-size="13" fill="#ffffff" text-anchor="end">GND</text>
+<circle cx="730" cy="380" r="5" fill="#ffffff" stroke="#17201b"/><text x="742" y="385" font-size="13" font-weight="700" fill="#17201b">VCC</text>
+<circle cx="730" cy="406" r="5" fill="#ffffff" stroke="#17201b"/><text x="742" y="411" font-size="13" font-weight="700" fill="#17201b">GND</text>
+<path d="M600 380 H650 V380 H730" fill="none" stroke="#b67600" stroke-width="3" stroke-linejoin="round"/>
+<path d="M600 406 H640 V406 H730" fill="none" stroke="#17201b" stroke-width="3" stroke-linejoin="round"/>
+<circle cx="600" cy="520" r="5" fill="#e8c35a" stroke="#1f2b38"/>
+<text x="588" y="525" font-size="13" fill="#ffffff" text-anchor="end">GPIO19 (D19)</text>
+<circle cx="600" cy="560" r="5" fill="#e8c35a" stroke="#1f2b38"/>
+<text x="588" y="565" font-size="13" fill="#ffffff" text-anchor="end">GND</text>
+<rect x="730" y="494" width="230" height="110" rx="8" fill="#ffffff" stroke="#17201b" stroke-width="2"/>
+<text x="746" y="518" font-size="16" font-weight="700" fill="#17201b">Active buzzer</text>
+<text x="746" y="538" font-size="12" fill="#5b6961">+ or I/O pin ← GPIO19</text>
+<text x="746" y="558" font-size="12" fill="#5b6961">− or GND pin → GND</text><text x="746" y="578" font-size="12" fill="#5b6961">VCC pin (3-pin module) → 3V3</text>
+<path d="M600 520 H665 V520 H730" fill="none" stroke="#7a3fb0" stroke-width="3" stroke-linejoin="round"/>
+<path d="M600 560 H650 V560 H730" fill="none" stroke="#17201b" stroke-width="3" stroke-linejoin="round"/>
+<line x1="24" y1="750" x2="54" y2="750" stroke="#0a7a75" stroke-width="4"/>
+<text x="62" y="755" font-size="13" fill="#17201b">knob / sensor signal</text>
+<line x1="214" y1="750" x2="244" y2="750" stroke="#7a3fb0" stroke-width="4"/>
+<text x="252" y="755" font-size="13" fill="#17201b">ESP32 output</text>
+<line x1="404" y1="750" x2="434" y2="750" stroke="#b67600" stroke-width="4"/>
+<text x="442" y="755" font-size="13" fill="#17201b">5 V</text>
+<line x1="594" y1="750" x2="624" y2="750" stroke="#c0352b" stroke-width="4"/>
+<text x="632" y="755" font-size="13" fill="#17201b">3.3 V</text>
+<line x1="784" y1="750" x2="814" y2="750" stroke="#17201b" stroke-width="4"/>
+<text x="822" y="755" font-size="13" fill="#17201b">ground</text>
+<line x1="24" y1="620" x2="380" y2="620" stroke="#c0352b" stroke-width="3"/><text x="24" y="610" font-size="13" fill="#c0352b" font-weight="600">3V3 rail: one outer leg of every knob, DHT22 +</text><line x1="24" y1="676" x2="355" y2="676" stroke="#17201b" stroke-width="3"/><path d="M355 676 V646 H380" fill="none" stroke="#17201b" stroke-width="3"/><text x="24" y="666" font-size="13" fill="#17201b" font-weight="600">GND rail: other outer leg of every knob, DHT22 −</text></svg>

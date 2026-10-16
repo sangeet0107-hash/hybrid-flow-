@@ -1,12 +1,5 @@
 {
   "database": {
     "rules": "backend/firebase/database.rules.json"
-  },
-  "hosting": {
-    "public": "dashboard",
-    "ignore": ["tests/**", "**/.*"],
-    "headers": [
-      { "source": "**/*.@(js|css)", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
-    ]
   }
 }

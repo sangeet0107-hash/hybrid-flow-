@@ -63,6 +63,37 @@ class SimSourceTests(unittest.TestCase):
         self.assertGreater(len(src.history), before)
 
 
+class ScenarioWhilePumpIdleTests(unittest.TestCase):
+    """Every scenario button must have a visible effect even if nothing is running."""
+
+    def idle_source(self):
+        src = SimSource()
+        src.plant.moisture = [58.0, 58.0]          # wet soil: controller stays idle
+        run_for(src, 3)
+        self.assertFalse(src.live["state"]["pump"])
+        return src
+
+    def test_pump_faults_trip_from_idle(self):
+        for scenario, fault, wait in (("JAM", "OVER_CURRENT", 4), ("DRY_TANK", "DRY_RUN", 8),
+                                      ("BLOCKAGE", "NO_FLOW", 14)):
+            src = self.idle_source()
+            src.scenario(scenario)
+            run_for(src, wait)
+            self.assertEqual(src.live["state"]["fault"], fault, scenario)
+
+    def test_cloud_from_idle_shows_grid_changeover(self):
+        src = self.idle_source()
+        src.scenario("CLOUD")
+        run_for(src, 9)
+        self.assertEqual(src.live["state"]["source"], "GRID")
+
+    def test_tank_overfill_closes_valves_at_once(self):
+        src = self.idle_source()
+        src.scenario("TANK_FULL")
+        run_for(src, 1.5)
+        self.assertTrue(src.live["state"]["tankFull"])
+
+
 class ViewTests(unittest.TestCase):
     def setUp(self):
         self.src = SimSource()
@@ -84,6 +115,13 @@ class ViewTests(unittest.TestCase):
                   "ZONE_STOPPED", "FAULT_DRY_RUN", "FAULT_OVER_CURRENT", "FAULT_NO_FLOW", "FAULT_CLEARED",
                   "TANK_FULL", "TANK_OK", "TEMP_ALERT", "TEMP_OK", "SENSOR_WARN", "MODE_HOLD", "MODE_AUTO"]:
             self.assertNotEqual(view.event_text({"type": t, "zone": 1, "value": 1.0}), t)
+
+    def test_bench_build_labels_knobs(self):
+        live = dict(self.live, inputs="knobs")
+        tags = [t["tag"] for t in view.tiles(live)]
+        self.assertIn("Knob · GPIO34", tags)
+        self.assertIn("Knob · GPIO32", tags)
+        self.assertIn("Bench build", view.header_html({"link": "online", "note": "Reading from Firebase"}, live, "hf-001"))
 
     def test_sparse_firebase_document(self):
         live = view.normalise({"ts": int(time.time() * 1000), "sensors": {"solarV": 12.0},

@@ -168,3 +168,154 @@ class FirebaseSource:
             self.status = {"link": "error", "note": f"Firebase answered {exc.code}: check the database rules and auth token"}
         except (urllib.error.URLError, OSError, ValueError) as exc:
             self.status = {"link": "error", "note": f"Can't reach Firebase: {exc}"}
+
+
+# ---------------------------------------------------------------- USB serial
+
+def parse_serial_line(line: str):
+    """Returns ("live", doc), ("event", doc) or None for one line from the ESP32."""
+    import json
+    line = line.strip()
+    for prefix, kind in (("@LIVE ", "live"), ("@EVT ", "event")):
+        if line.startswith(prefix):
+            try:
+                doc = json.loads(line[len(prefix):])
+            except ValueError:
+                return None
+            return (kind, doc) if isinstance(doc, dict) else None
+    return None
+
+
+def list_serial_ports() -> list[tuple[str, str]]:
+    """(device, description) for each serial port, likely ESP32 ports first."""
+    try:
+        from serial.tools import list_ports
+    except ImportError:
+        return []
+    ports = [(p.device, p.description or p.device) for p in list_ports.comports()]
+    hints = ("CH340", "CP210", "USB", "UART", "Silicon Labs", "wch")
+    return sorted(ports, key=lambda p: not any(h.lower() in p[1].lower() for h in hints))
+
+
+class SerialSource:
+    """Reads the ESP32 directly over the USB cable. No Wi-Fi or Firebase needed.
+
+    The firmware prints "@LIVE {json}" every second and "@EVT {json}" for each
+    event; commands go back as single characters (h, a, r).
+    """
+    kind = "serial"
+    _open_sources: dict = {}
+
+    @classmethod
+    def get(cls, port: str) -> "SerialSource":
+        """One reader per port, shared by every browser tab (a port can only be opened once)."""
+        src = cls._open_sources.get(port)
+        if src is None or src._stop:
+            src = cls._open_sources[port] = cls(port)
+        return src
+
+    def __init__(self, port: str, baud: int = 115200):
+        import threading
+        self.port = port
+        self.baud = baud
+        self.live = None
+        self.history: deque = deque(maxlen=int(HISTORY_S))
+        self.events: deque = deque(maxlen=80)
+        self.status = {"link": "stale", "note": f"Opening {port}…"}
+        self._ser = None
+        self._lock = threading.Lock()
+        self._last_rx = 0.0
+        self._stop = False
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
+
+    def _open(self):
+        import serial
+        if "://" in self.port:   # e.g. rfc2217://localhost:4000 from the Wokwi simulator
+            return serial.serial_for_url(self.port, baudrate=self.baud, timeout=0.5)
+        ser = serial.Serial()
+        ser.port, ser.baudrate, ser.timeout = self.port, self.baud, 0.5
+        ser.dtr = False   # don't hold the ESP32 in reset
+        ser.rts = False
+        ser.open()
+        return ser
+
+    def _run(self):
+        while not self._stop:
+            if self._ser is None:
+                try:
+                    self._ser = self._open()
+                    self.status = {"link": "stale", "note": f"Connected to {self.port}. Waiting for the ESP32…"}
+                except Exception as exc:  # port busy or unplugged
+                    busy = "denied" in str(exc).lower() or "busy" in str(exc).lower()
+                    if "://" in self.port:
+                        note = "Can't reach the Wokwi simulator: start it in VS Code first (see README)"
+                    elif busy:
+                        note = f"{self.port} is in use: close the Arduino Serial Monitor"
+                    else:
+                        note = f"Can't open {self.port}: check the USB cable"
+                    self.status = {"link": "error", "note": note}
+                    time.sleep(2)
+                    continue
+            try:
+                raw = self._ser.readline()
+            except Exception:
+                try:
+                    self._ser.close()
+                except Exception:
+                    pass
+                self._ser = None
+                self.status = {"link": "error", "note": "USB cable unplugged. Plug it back in; it reconnects by itself."}
+                continue
+            if not raw:
+                continue
+            parsed = parse_serial_line(raw.decode("utf-8", "replace"))
+            if not parsed:
+                continue
+            kind, doc = parsed
+            now_ms = int(time.time() * 1000)
+            doc["ts"] = now_ms   # the ESP32 has no clock without Wi-Fi; stamp on arrival
+            with self._lock:
+                self._last_rx = time.monotonic()
+                if kind == "live" and doc.get("sensors") and doc.get("state"):
+                    self.live = doc
+                    self.history.append(_point(doc))
+                elif kind == "event":
+                    self.events.append(doc)
+
+    def poll(self) -> None:
+        with self._lock:
+            age = time.monotonic() - self._last_rx if self._last_rx else None
+        if self.status.get("link") == "error" and (age is None or age > 3):
+            return
+        if age is None:
+            return
+        if age > 4:
+            self.status = {"link": "offline", "note": f"No data from the ESP32 for {age:.0f} s. Is it running the Hybrid-Flow firmware?"}
+        else:
+            where = "Wokwi simulator" if "://" in self.port else f"ESP32 over USB ({self.port})"
+            self.status = {"link": "online", "note": where}
+
+    def _send(self, ch: str) -> None:
+        if self._ser is None:
+            raise RuntimeError("ESP32 not connected")
+        self._ser.write(ch.encode())
+
+    def command(self, action: str) -> None:
+        self._send({"HOLD": "h", "AUTO": "a", "RESET_FAULT": "r"}[action])
+
+    def relay_test(self) -> None:
+        self._send("t")
+
+    def scenario(self, name: str) -> None:
+        raise RuntimeError("On the real board, turn the knobs instead")
+
+    def close(self) -> None:
+        self._stop = True
+        if SerialSource._open_sources.get(self.port) is self:
+            del SerialSource._open_sources[self.port]
+        try:
+            if self._ser:
+                self._ser.close()
+        except Exception:
+            pass

@@ -69,9 +69,17 @@ class Plant:
         self.flow = 0.0
 
     # ------------------------------------------------------------ scenarios
+    def _force_run(self) -> None:
+        """Pump faults only show while the pump runs: if it's idle, dry Zone 1
+        below the critical level so the controller starts watering it."""
+        if self.pump_on_since is None:
+            self.moisture[0] = min(self.moisture[0], 26.0)
+
     def trigger(self, name: str) -> None:
         if name == "CLOUD":
             self.cloud_until = self.t + 40
+            # Make Zone 2 critical so the grid changeover is visible.
+            self.moisture[1] = min(self.moisture[1], 24.0)
         elif name == "NIGHT":
             self.clock_min = 19.5 * 60
         elif name == "DAY":
@@ -79,15 +87,18 @@ class Plant:
         elif name == "DRY_TANK":
             self.tank = 2.0
             self.dry_until = self.t + 90
+            self._force_run()
         elif name == "BLOCKAGE":
             self.blocked = True
+            self._force_run()
         elif name == "JAM":
             self.jammed = True
+            self._force_run()
         elif name == "HEATWAVE":
             self.heat_until = self.t + 40
         elif name == "TANK_FULL":
-            self.tank = 93.0
-            self.overfill_until = self.t + 25
+            self.tank = 96.0
+            self.overfill_until = self.t + 20
         elif name == "WIFI_DROP":
             self.wifi_down_until = self.t + 45
         elif name == "CLEAR":

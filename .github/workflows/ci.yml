@@ -13,6 +13,10 @@ jobs:
         run: make -C tests/firmware
       - name: Compile check of the full sketch
         run: make -C tests/firmware syntax
+      - name: Firmware JSON matches the dashboard's test fixture
+        run: |
+          make -C tests/firmware serial-lines.txt
+          diff <(grep '^@' frontend/tests/esp32_serial_sample.txt | grep -v broken) tests/firmware/serial-lines.txt
 
   python:
     runs-on: ubuntu-latest
@@ -30,13 +34,3 @@ jobs:
       - name: Emulator smoke run
         working-directory: backend/emulator
         run: python device_emulator.py --duration 5 --quiet
-
-  javascript:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-      - name: Scenario tests (dashboard JS controller)
-        run: node dashboard/tests/run_scenarios.js

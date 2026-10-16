@@ -12,112 +12,100 @@
     },
     {
       "type": "wokwi-potentiometer",
-      "id": "pot_solar",
-      "top": -160,
-      "left": -330,
+      "id": "knob_solar",
+      "top": -170,
+      "left": -340,
       "attrs": {
-        "value": "784"
+        "value": "769"
       }
     },
     {
       "type": "wokwi-potentiometer",
-      "id": "pot_soil1",
-      "top": -160,
+      "id": "knob_soil1",
+      "top": -170,
       "left": -240,
       "attrs": {
-        "value": "595"
+        "value": "432"
       }
     },
     {
       "type": "wokwi-potentiometer",
-      "id": "pot_soil2",
-      "top": -160,
-      "left": -150,
+      "id": "knob_soil2",
+      "top": -170,
+      "left": -140,
       "attrs": {
-        "value": "682"
+        "value": "240"
       }
     },
     {
       "type": "wokwi-potentiometer",
-      "id": "pot_current",
+      "id": "knob_tank",
       "top": -60,
-      "left": -330,
+      "left": -340,
       "attrs": {
-        "value": "358"
+        "value": "577"
       }
     },
     {
       "type": "wokwi-potentiometer",
-      "id": "pot_flow",
+      "id": "knob_current",
       "top": -60,
       "left": -240,
       "attrs": {
-        "value": "614"
+        "value": "336"
       }
     },
     {
-      "type": "wokwi-photoresistor-sensor",
-      "id": "ldr",
-      "top": 60,
-      "left": -420,
+      "type": "wokwi-potentiometer",
+      "id": "knob_flow",
+      "top": -60,
+      "left": -140,
       "attrs": {
-        "lux": "800"
+        "value": "577"
       }
     },
     {
       "type": "wokwi-dht22",
       "id": "dht",
-      "top": 130,
-      "left": -200,
+      "top": 120,
+      "left": -220,
       "attrs": {
         "temperature": "32",
         "humidity": "45"
       }
     },
     {
-      "type": "wokwi-hc-sr04",
-      "id": "tank",
-      "top": 260,
-      "left": -320,
-      "attrs": {
-        "distance": "54"
-      }
-    },
-    {
-      "type": "wokwi-pushbutton",
-      "id": "float_sw",
-      "top": 270,
-      "left": -60,
-      "attrs": {
-        "color": "blue",
-        "label": "Float switch (hold = overflow)"
-      }
-    },
-    {
       "type": "wokwi-relay-module",
       "id": "relay_src",
-      "top": -150,
+      "top": -170,
       "left": 220,
       "attrs": {}
     },
     {
       "type": "wokwi-relay-module",
       "id": "relay_z1",
-      "top": -60,
+      "top": -90,
       "left": 220,
       "attrs": {}
     },
     {
       "type": "wokwi-relay-module",
       "id": "relay_z2",
-      "top": 30,
+      "top": -10,
+      "left": 220,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-relay-module",
+      "id": "relay_pump",
+      "top": 70,
       "left": 220,
       "attrs": {}
     },
     {
       "type": "wokwi-led",
       "id": "led_solar",
-      "top": -190,
+      "top": -210,
       "left": 420,
       "attrs": {
         "color": "yellow",
@@ -127,7 +115,7 @@
     {
       "type": "wokwi-led",
       "id": "led_grid",
-      "top": -190,
+      "top": -210,
       "left": 470,
       "attrs": {
         "color": "blue",
@@ -137,7 +125,7 @@
     {
       "type": "wokwi-led",
       "id": "led_z1",
-      "top": -100,
+      "top": -130,
       "left": 420,
       "attrs": {
         "color": "cyan",
@@ -147,7 +135,7 @@
     {
       "type": "wokwi-led",
       "id": "led_z2",
-      "top": -10,
+      "top": -50,
       "left": 420,
       "attrs": {
         "color": "cyan",
@@ -157,28 +145,18 @@
     {
       "type": "wokwi-led",
       "id": "led_pump",
-      "top": 120,
-      "left": 240,
+      "top": 30,
+      "left": 420,
       "attrs": {
         "color": "green",
-        "label": "Pump SSR"
-      }
-    },
-    {
-      "type": "wokwi-led",
-      "id": "led_alert",
-      "top": 120,
-      "left": 300,
-      "attrs": {
-        "color": "red",
-        "label": "Alert"
+        "label": "Pump"
       }
     },
     {
       "type": "wokwi-buzzer",
       "id": "buzzer",
-      "top": 190,
-      "left": 260,
+      "top": 170,
+      "left": 240,
       "attrs": {
         "volume": "0.1"
       }
@@ -186,109 +164,109 @@
   ],
   "connections": [
     [
-      "pot_solar:SIG",
+      "knob_solar:SIG",
       "esp:34",
       "green",
       []
     ],
     [
-      "pot_solar:VCC",
+      "knob_solar:VCC",
       "esp:3V3",
       "red",
       []
     ],
     [
-      "pot_solar:GND",
+      "knob_solar:GND",
       "esp:GND.1",
       "black",
       []
     ],
     [
-      "pot_soil1:SIG",
+      "knob_soil1:SIG",
       "esp:35",
       "green",
       []
     ],
     [
-      "pot_soil1:VCC",
+      "knob_soil1:VCC",
       "esp:3V3",
       "red",
       []
     ],
     [
-      "pot_soil1:GND",
+      "knob_soil1:GND",
       "esp:GND.1",
       "black",
       []
     ],
     [
-      "pot_soil2:SIG",
+      "knob_soil2:SIG",
       "esp:VN",
       "green",
       []
     ],
     [
-      "pot_soil2:VCC",
+      "knob_soil2:VCC",
       "esp:3V3",
       "red",
       []
     ],
     [
-      "pot_soil2:GND",
+      "knob_soil2:GND",
       "esp:GND.1",
       "black",
       []
     ],
     [
-      "pot_current:SIG",
-      "esp:33",
-      "green",
-      []
-    ],
-    [
-      "pot_current:VCC",
-      "esp:3V3",
-      "red",
-      []
-    ],
-    [
-      "pot_current:GND",
-      "esp:GND.1",
-      "black",
-      []
-    ],
-    [
-      "pot_flow:SIG",
-      "esp:VP",
-      "green",
-      []
-    ],
-    [
-      "pot_flow:VCC",
-      "esp:3V3",
-      "red",
-      []
-    ],
-    [
-      "pot_flow:GND",
-      "esp:GND.1",
-      "black",
-      []
-    ],
-    [
-      "ldr:AO",
+      "knob_tank:SIG",
       "esp:32",
       "green",
       []
     ],
     [
-      "ldr:VCC",
+      "knob_tank:VCC",
       "esp:3V3",
       "red",
       []
     ],
     [
-      "ldr:GND",
+      "knob_tank:GND",
+      "esp:GND.1",
+      "black",
+      []
+    ],
+    [
+      "knob_current:SIG",
+      "esp:33",
+      "green",
+      []
+    ],
+    [
+      "knob_current:VCC",
+      "esp:3V3",
+      "red",
+      []
+    ],
+    [
+      "knob_current:GND",
+      "esp:GND.1",
+      "black",
+      []
+    ],
+    [
+      "knob_flow:SIG",
+      "esp:VP",
+      "green",
+      []
+    ],
+    [
+      "knob_flow:VCC",
+      "esp:3V3",
+      "red",
+      []
+    ],
+    [
+      "knob_flow:GND",
       "esp:GND.1",
       "black",
       []
@@ -307,42 +285,6 @@
     ],
     [
       "dht:GND",
-      "esp:GND.1",
-      "black",
-      []
-    ],
-    [
-      "tank:TRIG",
-      "esp:13",
-      "orange",
-      []
-    ],
-    [
-      "tank:ECHO",
-      "esp:14",
-      "orange",
-      []
-    ],
-    [
-      "tank:VCC",
-      "esp:5V",
-      "red",
-      []
-    ],
-    [
-      "tank:GND",
-      "esp:GND.1",
-      "black",
-      []
-    ],
-    [
-      "float_sw:1.l",
-      "esp:26",
-      "blue",
-      []
-    ],
-    [
-      "float_sw:2.l",
       "esp:GND.1",
       "black",
       []
@@ -420,6 +362,30 @@
       []
     ],
     [
+      "relay_pump:IN",
+      "esp:18",
+      "purple",
+      []
+    ],
+    [
+      "relay_pump:VCC",
+      "esp:5V",
+      "red",
+      []
+    ],
+    [
+      "relay_pump:GND",
+      "esp:GND.2",
+      "black",
+      []
+    ],
+    [
+      "relay_pump:COM",
+      "esp:3V3",
+      "red",
+      []
+    ],
+    [
       "relay_src:NC",
       "led_solar:A",
       "gold",
@@ -441,6 +407,12 @@
       "relay_z2:NO",
       "led_z2:A",
       "cyan",
+      []
+    ],
+    [
+      "relay_pump:NO",
+      "led_pump:A",
+      "green",
       []
     ],
     [
@@ -471,24 +443,6 @@
       "led_pump:C",
       "esp:GND.2",
       "black",
-      []
-    ],
-    [
-      "led_alert:C",
-      "esp:GND.2",
-      "black",
-      []
-    ],
-    [
-      "led_pump:A",
-      "esp:18",
-      "green",
-      []
-    ],
-    [
-      "led_alert:A",
-      "esp:23",
-      "red",
       []
     ],
     [
