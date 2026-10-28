@@ -6,8 +6,10 @@
 // USB: a status line and a JSON line every second, read by the Streamlit
 // dashboard ("ESP32 over USB"), so the demo needs no Wi-Fi at all.
 //
-// Build profile (config.h): SIM_INPUTS 1 = bench demo with knobs for the sensors
-// (default), 0 = field build with the real sensors.
+// Build profile (config.h): each sensor is real or a bench knob (REAL_* switches).
+// Default: real soil probes, HC-SR04 + float switch, DHT22 and LDR; knobs for
+// solar voltage, pump current and water flow. SIM_INPUTS 1 = all knobs (Wokwi),
+// SIM_INPUTS 0 = field build with every real sensor.
 //
 // Libraries: "DHT sensor library" and "Adafruit Unified Sensor" (Library Manager).
 // Board: ESP32 Dev Module (esp32 by Espressif, core 2.x or 3.x).
@@ -18,6 +20,7 @@
 //   i = invert relay logic (if relays are on when they should be off; remembered)
 //   b = invert buzzer logic (if it beeps when it should be quiet; remembered)
 //   s = print status now
+//   c = print raw sensor readings (for calibrating the soil probes and tank)
 
 #include <Preferences.h>
 
@@ -113,6 +116,29 @@ static Snapshot snapshot(const Readings& r) {
   return s;
 }
 
+// Raw readings for calibration: soil millivolts (dry air vs a glass of water go
+// into SOIL_DRY_MV / SOIL_WET_MV), the HC-SR04 distance, the LDR and the float.
+static void printRaw(const Readings& r) {
+  Serial.printf("RAW soil Z1=%.0fmV Z2=%.0fmV | tank %.1fcm (%.0f%%) float=%s | LDR=%.0fmV (%.0f%%) | T=%.1fC RH=%.0f%%\n",
+                r.soilMv[0], r.soilMv[1], r.tankCm, r.tankPct, r.floatHigh ? "HIGH" : "low", r.ldrMv,
+                r.lightPct, r.tempC, r.humidity);
+}
+
+static void printProfile() {
+  if (ALL_REAL) {
+    Serial.println("Field build: every sensor is real");
+    return;
+  }
+  struct { bool real; const char* name; } in[] = {
+      {REAL_SOLAR, "solar"}, {REAL_SOIL, "soil"},       {REAL_TANK, "tank+float"}, {REAL_DHT22, "DHT22"},
+      {REAL_LDR, "LDR"},     {REAL_CURRENT, "current"}, {REAL_FLOW, "flow"}};
+  Serial.print("Bench build. Real:");
+  for (auto& i : in) if (i.real) Serial.printf(" %s", i.name);
+  Serial.print(" | knobs:");
+  for (auto& i : in) if (!i.real) Serial.printf(" %s", i.name);
+  Serial.println();
+}
+
 static void handleSerial(uint32_t now) {
   while (Serial.available()) {
     char c = Serial.read();
@@ -120,6 +146,7 @@ static void handleSerial(uint32_t now) {
     else if (c == 'a') controller.command(hf::Command::AUTO, now);
     else if (c == 'r') controller.command(hf::Command::RESET_FAULT, now);
     else if (c == 's') lastPrintMs = 0;
+    else if (c == 'c') printRaw(sensors.last());
     else if (c == 't') relayTest();
     else if (c == 'i' || c == 'b') {
       const char* key = c == 'i' ? "flipRelays" : "flipBuzzer";
@@ -149,9 +176,9 @@ void setup() {
   Serial.begin(115200);
   delay(300);
   Serial.println("\nHybrid-Flow " FW_VERSION " (" DEVICE_ID ")");
-  Serial.println(SIM_INPUTS ? "Bench build: knobs stand in for the sensors" : "Field build: real sensors");
+  printProfile();
   Serial.println(CLOUD_ENABLED ? "Firebase upload on" : "No secrets.h: running offline (USB dashboard only)");
-  Serial.println("Commands: h hold, a auto, r reset fault, t relay test, i invert relays, b invert buzzer");
+  Serial.println("Commands: h hold, a auto, r reset fault, t relay test, i invert relays, b invert buzzer, c raw readings");
 
   sensors.begin();
   relayTest();

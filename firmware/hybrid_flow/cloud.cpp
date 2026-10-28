@@ -61,7 +61,21 @@ String liveJsonImpl(const Snapshot& x) {
   s += "{\"ts\":"; ts(s, x.tsMs);
   s += ",\"uptimeS\":"; s += x.uptimeS;
   s += ",\"fw\":\"" FW_VERSION "\"";
-  s += SIM_INPUTS ? ",\"inputs\":\"knobs\"" : ",\"inputs\":\"sensors\"";
+  s += ALL_REAL ? ",\"inputs\":\"sensors\"" : ALL_KNOBS ? ",\"inputs\":\"knobs\"" : ",\"inputs\":\"mixed\"";
+  s += ",\"knobs\":[";  // readings that come from a bench knob or a fixed value
+  {
+    bool first = true;
+    const struct { bool real; const char* key; } in[] = {
+        {REAL_SOLAR, "solar"}, {REAL_SOIL, "soil"},   {REAL_TANK, "tank"},       {REAL_DHT22, "temp"},
+        {REAL_LDR, "light"},   {REAL_CURRENT, "current"}, {REAL_FLOW, "flow"}};
+    for (const auto& i : in) {
+      if (i.real) continue;
+      if (!first) s += ",";
+      s += "\""; s += i.key; s += "\"";
+      first = false;
+    }
+  }
+  s += "]";
   s += ",\"sensors\":{\"solarV\":"; num(s, x.r.solarV);
   s += ",\"soil\":{\"z1\":"; num(s, x.r.soil[0], 1);
   s += ",\"z2\":"; num(s, x.r.soil[1], 1);

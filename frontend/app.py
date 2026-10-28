@@ -122,16 +122,8 @@ with st.sidebar:
 
     if ss.mode in ("serial", "wokwi"):
         st.divider()
-        st.subheader("Demo with the knobs")
-        st.markdown(
-            "- **Soil Zone 2** low → valve relay 3 clicks, pump relay 4 a second later\n"
-            "- **Soil Zone 2** past 60 % → pump stops, then the valve\n"
-            "- **Solar** below ¾ turn (18 V) with a zone below 30 % → after 5 s, relay 1 to grid\n"
-            "- **Current** to zero while pumping → dry-run trip in 3 s, buzzer\n"
-            "- **Current** fully up → over-current trip\n"
-            "- **Flow** to zero → no-flow trip after about 10 s\n"
-            "- **Tank** fully up → tank full, everything stops\n\n"
-            "Before **Reset fault**, turn the knob back to normal, or it trips again.")
+        st.subheader("Demo on the bench")
+        st.markdown(view.demo_markdown(getattr(ss.source, "live", None)))
 
 if ss.mode in ("sim", "firebase"):
   with st.sidebar:

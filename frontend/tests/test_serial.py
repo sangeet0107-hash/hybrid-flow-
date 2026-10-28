@@ -62,7 +62,8 @@ class ParserTests(unittest.TestCase):
         kinds = [p[0] for p in parsed if p]
         self.assertEqual(kinds, ["live", "event"])
         live = parsed[2][1]
-        self.assertEqual(live["inputs"], "knobs")
+        self.assertEqual(live["inputs"], "mixed")
+        self.assertEqual(live["knobs"], ["solar", "current", "flow"])
         self.assertIsNone(live["sensors"]["soil"]["z2"])   # NaN from the ESP32 arrives as null
 
     def test_dashboard_renders_firmware_document(self):

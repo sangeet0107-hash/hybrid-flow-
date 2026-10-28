@@ -116,12 +116,34 @@ class ViewTests(unittest.TestCase):
                   "TANK_FULL", "TANK_OK", "TEMP_ALERT", "TEMP_OK", "SENSOR_WARN", "MODE_HOLD", "MODE_AUTO"]:
             self.assertNotEqual(view.event_text({"type": t, "zone": 1, "value": 1.0}), t)
 
-    def test_bench_build_labels_knobs(self):
+    def test_old_firmware_all_knobs_labels(self):
         live = dict(self.live, inputs="knobs")
         tags = [t["tag"] for t in view.tiles(live)]
         self.assertIn("Knob · GPIO34", tags)
         self.assertIn("Knob · GPIO32", tags)
         self.assertIn("Bench build", view.header_html({"link": "online", "note": "Reading from Firebase"}, live, "hf-001"))
+
+    def test_mixed_build_labels_only_the_knobs(self):
+        live = dict(self.live, inputs="mixed", knobs=["solar", "current", "flow"])
+        tags = {t["label"]: t["tag"] for t in view.tiles(live)}
+        self.assertEqual(tags["Solar voltage"], "Knob · GPIO34")
+        self.assertEqual(tags["Pump current"], "Knob · GPIO33")
+        self.assertEqual(tags["Water flow"], "Knob · GPIO36")
+        self.assertEqual(tags["Soil moisture · Zone 1"], "GPIO35 · capacitive")
+        self.assertEqual(tags["Tank level"], "HC-SR04 · GPIO13/14")
+        self.assertEqual(tags["Light intensity"], "GPIO32 · LDR")
+        self.assertEqual(tags["Air temperature"], "GPIO4 · DHT22")
+        note = view.header_html({"link": "online", "note": "USB"}, live, "hf-001")
+        self.assertIn("knobs stand in for solar voltage, pump current, water flow", note)
+        demo = view.demo_markdown(live)
+        self.assertIn("Zone 2 probe", demo)
+        self.assertIn("HC-SR04", demo)
+        self.assertNotIn("Tank** knob", demo)
+
+    def test_field_build_has_no_knob_labels(self):
+        live = dict(self.live, inputs="sensors", knobs=[])
+        self.assertFalse(any(t["tag"].startswith("Knob") for t in view.tiles(live)))
+        self.assertNotIn("Bench build", view.header_html({"link": "online", "note": "USB"}, live, "hf-001"))
 
     def test_sparse_firebase_document(self):
         live = view.normalise({"ts": int(time.time() * 1000), "sensors": {"solarV": 12.0},
