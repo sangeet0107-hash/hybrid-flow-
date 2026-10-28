@@ -71,7 +71,9 @@ void Controller::updateTank(uint32_t now) {
     tankFull_ = true;
     chirpUntil_ = now + 300;
     emit(now, EventType::TANK_FULL, -1, in_.tankPct);
-  } else if (tankFull_ && !in_.tankFloatHigh && valid(in_.tankPct) && in_.tankPct < cfg_.tankResumePct) {
+  } else if (tankFull_ && !in_.tankFloatHigh && (!valid(in_.tankPct) || in_.tankPct < cfg_.tankResumePct)) {
+    // With no level reading (ultrasonic missing or out of range) the float switch
+    // alone decides, so a full tank doesn't latch forever.
     tankFull_ = false;
     emit(now, EventType::TANK_OK, -1, in_.tankPct);
   }

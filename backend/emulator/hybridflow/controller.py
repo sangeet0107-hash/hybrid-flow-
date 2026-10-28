@@ -160,8 +160,9 @@ class Controller:
             self.tank_full = True
             self.chirp_until = now + 300
             self._emit(now, "TANK_FULL", -1, i.tank_pct)
-        elif (self.tank_full and not i.tank_float_high and _valid(i.tank_pct)
-              and i.tank_pct < self.cfg.tank_resume_pct):
+        elif (self.tank_full and not i.tank_float_high
+              and (not _valid(i.tank_pct) or i.tank_pct < self.cfg.tank_resume_pct)):
+            # No level reading: the float switch alone decides (matches the firmware).
             self.tank_full = False
             self._emit(now, "TANK_OK", -1, i.tank_pct)
 

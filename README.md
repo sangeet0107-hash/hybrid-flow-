@@ -48,7 +48,7 @@ If a knob works backwards, swap the two outer wires of that trimpot.
 | `frontend/` | **Streamlit dashboard** (Python). Reads the ESP32 over USB, the Wokwi simulator, its own built-in simulator, or Firebase. |
 | `backend/emulator/` | Python package `hybridflow` (the controller ported to Python, a farm model, a Firebase client) and `device_emulator.py`, which behaves like the ESP32 on the network. |
 | `backend/firebase/` | Realtime Database security and validation rules (optional cloud path). |
-| `tests/` | `scenarios.json`: 15 behaviour scenarios that the C++ firmware logic and the Python controller both pass. |
+| `tests/` | `scenarios.json`: 16 behaviour scenarios that the C++ firmware logic and the Python controller both pass. |
 | `docs/` | Wiring pictures (`docs/wiring/`) and the Firebase data model. |
 
 ## Without hardware: built-in simulator

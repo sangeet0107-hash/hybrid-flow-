@@ -124,6 +124,15 @@
       ]
     },
     {
+      "name": "float_clears_tank_full_without_level_sensor",
+      "init": { "z1": 40, "tankPct": null },
+      "steps": [
+        { "ms": 2000, "expect": { "phase": "RUNNING" } },
+        { "ms": 800, "in": { "floatHigh": true }, "expect": { "phase": "IDLE", "pump": false }, "events": ["TANK_FULL"] },
+        { "ms": 500, "in": { "floatHigh": false }, "expect": { "phase": "VALVE_OPENING" }, "events": ["TANK_OK", "ZONE_START"] }
+      ]
+    },
+    {
       "name": "invalid_probe_is_skipped",
       "init": { "z1": null, "z2": 40 },
       "steps": [
