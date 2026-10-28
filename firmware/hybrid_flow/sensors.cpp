@@ -6,11 +6,11 @@
 #include "config.h"
 
 #if REAL_DHT22
-#if __has_include(<DHT.h>)
+// Plain #include on purpose: the Arduino IDE finds libraries by scanning for
+// #include lines, so a __has_include() check would hide the installed library.
+// "DHT.h: No such file" means: install "DHT sensor library" by Adafruit
+// (Tools > Manage Libraries), or set REAL_DHT22 0 in config.h.
 #include <DHT.h>
-#else
-#error "REAL_DHT22 is 1: install \"DHT sensor library\" by Adafruit (Arduino IDE: Tools > Manage Libraries), or set REAL_DHT22 0 in config.h"
-#endif
 static DHT dht(PIN_DHT, DHT22);
 #endif
 
