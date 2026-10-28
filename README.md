@@ -33,17 +33,17 @@ No Wi-Fi or Firebase needed: the dashboard reads the ESP32 straight over the USB
    pip install -r requirements.txt
    streamlit run app.py
    ```
-4. In the sidebar pick **ESP32 over USB**, choose the port, press **Connect**. The sidebar lists what to do with each knob.
+4. In the sidebar pick **ESP32 over USB**, choose the port, press **Connect**. The sidebar lists what to do with each sensor and knob.
 
-Starting knob positions: solar ¾ turn, soil Zone 1 half, soil Zone 2 ¼, tank half, current ⅓, flow half. Zone 2's valve relay clicks, then the pump relay.
+Starting knob positions: solar ¾ turn (20 V), current ⅓ (4 A), flow half (12 L/min). A soil probe in dry air starts its zone: the valve relay clicks, then the pump relay.
 
-If a knob works backwards (turning it up makes the soil *drier*), swap the two outer wires of that trimpot.
+If a knob works backwards, swap the two outer wires of that trimpot.
 
 ## What's in the repo
 
 | Folder | What it is |
 |---|---|
-| `firmware/hybrid_flow/` | ESP32 Arduino sketch. `control_logic.*` is the switching and protection state machine with no Arduino dependencies; `sensors.*` reads the knobs (bench) or the 7 sensors (field); `cloud.*` handles optional Wi-Fi and Firebase on core 0. |
+| `firmware/hybrid_flow/` | ESP32 Arduino sketch. `control_logic.*` is the switching and protection state machine with no Arduino dependencies; `sensors.*` reads the 7 sensors, with a knob in place of any of them on the bench (`REAL_*` in `config.h`); `cloud.*` handles optional Wi-Fi and Firebase on core 0. |
 | `firmware/diagram.json`, `wokwi.toml`, `libraries.txt`, `platformio.ini` | Wokwi simulation of the bench build, and PlatformIO builds for the bench, field and Wokwi profiles. |
 | `frontend/` | **Streamlit dashboard** (Python). Reads the ESP32 over USB, the Wokwi simulator, its own built-in simulator, or Firebase. |
 | `backend/emulator/` | Python package `hybridflow` (the controller ported to Python, a farm model, a Firebase client) and `device_emulator.py`, which behaves like the ESP32 on the network. |
@@ -80,44 +80,55 @@ Each scenario can also be triggered on its own from the sidebar.
    - **ESP32 hardware**: see below.
 3. **Open the dashboard.** In Streamlit choose *Firebase* in the sidebar, paste the URL and press Connect. Hold, Auto and Reset fault write to `/command`; the device picks them up within 3 s.
 
-## Bench build (about ₹1,000)
+## Bench build with real sensors (default)
 
-The firmware's default profile (`SIM_INPUTS 1` in `config.h`) replaces the sensors with six potentiometers ("knobs"). Everything else is real: the ESP32 runs the full control logic, the four relays switch, the buzzer sounds and the data goes to the dashboard. Turning a knob is how you change a sensor reading during the demo.
+The default firmware profile reads the real **soil probes, HC-SR04 tank level + float switch, DHT22 and LDR**. Three knobs stay for the readings that need mains plumbing: **solar voltage, pump current and water flow**. The ESP32 runs the full control logic, the four relays switch, the buzzer sounds and the data goes to the dashboard.
 
-**Parts:** ESP32 DevKit V1 (30-pin) and a micro-USB data cable, a 4-channel 5 V relay module, six 10 kΩ potentiometers, an active buzzer, a breadboard and jumper wires. Optional: a DHT22 (3-pin module) for real temperature; set `USE_DHT22 1` in `config.h` if you fit one. Without it the firmware uses a fixed 30 °C.
+Each input has its own switch in `firmware/hybrid_flow/config.h` (`REAL_SOLAR`, `REAL_SOIL`, `REAL_TANK`, `REAL_DHT22`, `REAL_LDR`, `REAL_CURRENT`, `REAL_FLOW`). `SIM_INPUTS 1` turns every input into a knob (the original six-knob bench, and Wokwi); `SIM_INPUTS 0` is the field build with every real sensor (`pio run -e field`).
 
-![Bench wiring](docs/bench-wiring.png)
+**Libraries** (Arduino IDE → Tools → Manage Libraries): *DHT sensor library* by Adafruit and *Adafruit Unified Sensor*.
 
-| Connect | To ESP32 pin | Notes |
+| Connect | To | Notes |
 |---|---|---|
 | Solar voltage knob (middle leg) | GPIO34 (D34) | 0–25 V; solar is available above 18 V (about ¾ turn) |
-| Soil Zone 1 knob | GPIO35 (D35) | 0–100 %, clockwise = wetter |
-| Soil Zone 2 knob | GPIO39 (VN) | 0–100 % |
-| Tank level knob | GPIO32 (D32) | 0–100 %; above 95 % stops irrigation |
 | Pump current knob | GPIO33 (D33) | 0–12 A, read only while the pump relay is on |
 | Water flow knob | GPIO36 (VP) | 0–20 L/min, read only while the pump relay is on |
-| Both outer legs of every knob | 3V3 and GND | either way round |
-| DHT22 DATA, +, − (optional) | GPIO4, 3V3, GND | |
-| Relay IN1 / IN2 / IN3 / IN4 | GPIO25 / GPIO16 (RX2) / GPIO17 (TX2) / GPIO18 | solar-grid, valve Zone 1, valve Zone 2, pump |
-| Relay VCC, GND | VIN (5 V), GND | |
+| Both outer legs of every knob | 3V3 and GND rails | either way round |
+| Soil probe Zone 1: VCC, GND, AOUT | 3V3, GND, GPIO35 (D35) | capacitive v1.2 with a TLC555 chip |
+| Soil probe Zone 2: VCC, GND, AOUT | 3V3, GND, GPIO39 (VN) | |
+| HC-SR04 Vcc, Gnd, Trig | 5V, GND, GPIO13 | 5V: ESP32 5V pin to a breadboard column; the relay VCC shares it |
+| HC-SR04 Echo | 1 kΩ → GPIO14, with 2 kΩ from GPIO14 to GND | the divider brings 5 V down to 3.3 V; never connect Echo straight to the ESP32 |
+| Float switch | GPIO26 and GND | closes at the overflow level (internal pull-up) |
+| DHT22 (bare, 4 pins) 1 VCC, 2 DATA, 4 GND | 3V3, GPIO4, GND | 10 kΩ between pins 1 and 2; pin 3 unused |
+| LDR (bare) | 3V3 → LDR → GPIO32, 10 kΩ from GPIO32 to GND | an LDR module works too: AO to GPIO32 |
+| Relay IN1 / IN2 / IN3 / IN4 | GPIO25 / GPIO16 / GPIO17 / GPIO18 | solar-grid, valve Zone 1, valve Zone 2, pump |
+| Relay VCC, GND | 5V, GND | |
 | Buzzer + (or I/O), − | GPIO19, GND | 3-pin module: VCC to 3V3 |
 
-The 30-pin ESP32 covers almost every hole of a standard breadboard, so leave it off the board and use male-female jumpers from its pins; put the knobs and the 3V3/GND rails on the breadboard.
+Coming from the six-knob bench: remove the Soil Z1, Soil Z2 and Tank knobs and reuse their wires for the two soil probes and the LDR.
 
-**Starting positions:** solar about ¾ turn (20 V), Zone 1 about half, Zone 2 about a quarter, tank about half, current about a third (4 A), flow about half (12 L/min). Zone 2 is below 30 %, so relay 3 clicks, then relay 4 a second later.
+**Check the sensors:** type `c` in the Serial Monitor for the raw readings (soil millivolts, tank distance, LDR, float, temperature).
+- Soil: note each probe's millivolts in dry air and in a glass of water, and put them in `SOIL_DRY_MV` / `SOIL_WET_MV`.
+- Tank: on the bench, 50 cm or more reads empty and a hand within about 7 cm reads 95 % (tank full).
+- Float switch: if the dashboard shows the float high all the time, turn the float upside down on its stem (or set `FLOAT_ACTIVE_LOW 0`).
+- LDR: covering it should lower the light reading; if it rises, set `LDR_INVERT 1`.
 
-**Demo with the knobs:**
-- Turn **Zone 2** clockwise past 60 %: relay 4 (pump) clicks off, then relay 3 (valve).
-- Turn **solar** below about ¾ while Zone 2 is below 30 %: after 5 s the pump stops, relay 1 clicks to grid, and the pump restarts.
-- Turn **current** to zero while the pump runs: dry-run trip after 3 s, buzzer alarm.
-- Turn **current** fully clockwise: over-current trip.
+**Demo:**
+- Zone 2 probe in dry air: relay 3 (valve) clicks, then relay 4 (pump) a second later. Dip it in water: the pump stops, then the valve.
+- Turn **solar** below about ¾ while a zone is below 30 %: after 5 s the pump stops, relay 1 clicks to grid, and the pump restarts.
+- Turn **current** to zero while the pump runs: dry-run trip after 3 s, buzzer alarm. Fully clockwise: over-current trip.
 - Turn **flow** to zero: no-flow trip after about 10 s.
-- Turn **tank** fully clockwise: tank full, everything stops.
+- Hand within 7 cm of the HC-SR04, or lift the float switch: tank full, everything stops.
+- Warm air on the DHT22 above 45 °C: heat alert, irrigation pauses.
 - Reset a fault from the dashboard or by typing `r` in the Serial Monitor (`h` = hold, `a` = auto, `t` = relay test).
 
 **If something is inverted:** relays on when they should be off means your module is high-level trigger: type `i` in the Serial Monitor (saved on the board). A buzzer that beeps when it should be quiet: type `b`. If the ESP32 restarts when relays click, power the relay module's VCC from a separate 5 V phone charger (keep GND shared).
 
-To build with the real sensors instead, set `SIM_INPUTS 0` (or `pio run -e field`).
+### Six-knob bench (no sensors)
+
+Set `#define SIM_INPUTS 1` at the top of `config.h` and six knobs stand in for every sensor (GPIO34 solar, GPIO35 / GPIO39 soil, GPIO32 tank, GPIO33 current, GPIO36 flow). The wiring pictures in `docs/wiring/` show this build.
+
+![Bench wiring](docs/bench-wiring.png)
 
 ## Wokwi simulation
 

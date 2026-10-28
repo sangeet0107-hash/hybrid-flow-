@@ -23,3 +23,7 @@ venv/
 .idea/
 .DS_Store
 Thumbs.db
+
+# firmware test build output
+tests/firmware/json_check
+tests/firmware/serial-lines.txt

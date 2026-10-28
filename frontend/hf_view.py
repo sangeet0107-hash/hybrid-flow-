@@ -163,6 +163,53 @@ def _one_line(s: str) -> str:
     return "".join(line.strip() for line in s.splitlines())
 
 
+# ------------------------------------------------------------------ knobs
+
+# Readings the firmware takes from a bench knob (or, for temperature, a fixed
+# value). New firmware lists them in live["knobs"]; older firmware only sent
+# inputs="knobs", meaning every input was a knob.
+KNOB_ORDER = ("solar", "soil", "tank", "light", "temp", "current", "flow")
+KNOB_NAMES = {"solar": "solar voltage", "soil": "soil moisture", "tank": "tank level", "light": "light",
+              "temp": "temperature (fixed)", "current": "pump current", "flow": "water flow"}
+
+
+def knob_keys(live: dict | None) -> set[str]:
+    if not live:
+        return set()
+    if isinstance(live.get("knobs"), list):
+        return {k for k in live["knobs"] if k in KNOB_NAMES}
+    if live.get("inputs") == "knobs":
+        return {"solar", "soil", "tank", "light", "current", "flow"}
+    return set()
+
+
+def demo_markdown(live: dict | None) -> str:
+    """What to do on the bench to show each behaviour, for the sensors this build has."""
+    keys = knob_keys(live) if live else {"solar", "current", "flow"}
+    soil = "the **Soil Zone 2** knob low" if "soil" in keys else "the **Zone 2 probe** out in dry air"
+    wet = "the **Soil Zone 2** knob past 60 %" if "soil" in keys else "the **Zone 2 probe** in a glass of water"
+    tank = ("the **Tank** knob fully up" if "tank" in keys
+            else "a **hand within 7 cm** of the HC-SR04, or lift the **float switch**")
+    lines = [
+        f"- {soil[0].upper() + soil[1:]} → valve relay 3 clicks, pump relay 4 a second later",
+        f"- {wet[0].upper() + wet[1:]} → pump stops, then the valve",
+    ]
+    if "solar" in keys:
+        lines.append("- **Solar** knob below ¾ turn (18 V) with a zone below 30 % → after 5 s, relay 1 to grid")
+    if "current" in keys:
+        lines.append("- **Current** knob to zero while pumping → dry-run trip in 3 s, buzzer")
+        lines.append("- **Current** knob fully up → over-current trip")
+    if "flow" in keys:
+        lines.append("- **Flow** knob to zero → no-flow trip after about 10 s")
+    lines.append(f"- {tank[0].upper() + tank[1:]} → tank full, everything stops")
+    if "temp" not in keys:
+        lines.append("- Warm air on the **DHT22** past 45 °C → heat alert, irrigation pauses")
+    if "light" not in keys:
+        lines.append("- Cover the **LDR** → light reading drops (shown on the dashboard only)")
+    tail = "\n\nBefore **Reset fault**, put the knob back to normal, or it trips again." if keys & {"current", "flow"} else ""
+    return "\n".join(lines) + tail
+
+
 # ------------------------------------------------------------------ header
 
 LINK = {
@@ -178,8 +225,10 @@ def header_html(status: dict, live: dict | None, device: str) -> str:
     label, bg, fg = LINK.get(status.get("link", "stale"), LINK["stale"])
     clock = (live or {}).get("simClock") or (time_of(live["ts"])[:5] if live and live.get("ts") else "--:--")
     note = status.get("note", "")
-    if live and live.get("inputs") == "knobs":
-        note += " · Bench build: knobs stand in for the sensors"
+    keys = knob_keys(live)
+    if keys:
+        names = [KNOB_NAMES[k] for k in KNOB_ORDER if k in keys]
+        note += " · Bench build: knobs stand in for " + ", ".join(names)
     if status.get("buffered"):
         note += f" · {status['buffered']} items buffered on the device"
     return _one_line(f"""
@@ -366,8 +415,8 @@ def diagram_html(live: dict) -> str:
 def tiles(live: dict) -> list[dict]:
     s, se = live["state"], live["sensors"]
     valves = s.get("valves") or {}
-    knobs = live.get("inputs") == "knobs"   # bench build: potentiometers stand in for sensors
-    tag = lambda real, knob: knob if knobs else real  # noqa: E731
+    keys = knob_keys(live)   # bench build: knobs stand in for these readings
+    tag = lambda key, real, knob: knob if key in keys else real  # noqa: E731
     out = []
 
     def add(label, tag, value, unit, lo, hi, dec, ticks, tone, note):
@@ -375,7 +424,7 @@ def tiles(live: dict) -> list[dict]:
                     "dec": dec, "ticks": ticks, "tone": tone, "note": note})
 
     v = se.get("solarV")
-    add("Solar voltage", tag("GPIO34 · divider", "Knob · GPIO34"), v, "V", 0, 25, 1, [C.solar_on_v],
+    add("Solar voltage", tag("solar", "GPIO34 · divider", "Knob · GPIO34"), v, "V", 0, 25, 1, [C.solar_on_v],
         "solar" if s.get("solarAvailable") else None,
         f"Above {C.solar_on_v:g} V: solar has priority" if s.get("solarAvailable")
         else f"Below {C.solar_on_v:g} V: solar unavailable")
@@ -388,25 +437,25 @@ def tiles(live: dict) -> list[dict]:
                 else f"Valve open · watering to {C.moisture_target:g} %" if open_
                 else f"Critical: grid allowed below {C.moisture_critical:g} %" if m < C.moisture_critical
                 else f"Critical {C.moisture_critical:g} % · target {C.moisture_target:g} %")
-        add(f"Soil moisture · Zone {z}", tag(f"GPIO{pin} · capacitive", f"Knob · GPIO{pin}"), m, "%", 0, 100, 0,
+        add(f"Soil moisture · Zone {z}", tag("soil", f"GPIO{pin} · capacitive", f"Knob · GPIO{pin}"), m, "%", 0, 100, 0,
             [C.moisture_critical, C.moisture_solar_start, C.moisture_target], tone, note)
     t = se.get("tankPct")
-    add("Tank level", tag("HC-SR04 · GPIO13/14", "Knob · GPIO32"), t, "%", 0, 100, 0, [C.tank_resume_pct, C.tank_overflow_pct],
+    add("Tank level", tag("tank", "HC-SR04 · GPIO13/14", "Knob · GPIO32"), t, "%", 0, 100, 0, [C.tank_resume_pct, C.tank_overflow_pct],
         "warn" if s.get("tankFull") else "crit" if t is not None and t < 5 else "water",
         "Float switch high: overflow" if se.get("floatHigh") else f"Valves close at {C.tank_overflow_pct:g} %")
     tc = se.get("tempC")
-    add("Air temperature", "GPIO4 · DHT22", tc, "°C", -5, 55, 1, [C.temp_min_c, C.temp_max_c],
+    add("Air temperature", tag("temp", "GPIO4 · DHT22", "Fixed value"), tc, "°C", -5, 55, 1, [C.temp_min_c, C.temp_max_c],
         "crit" if tc is None else "warn" if s.get("tempAlert") else None,
         f"Humidity {fmt(se.get('humidity'), 0)} % · safe {C.temp_min_c:g}–{C.temp_max_c:g} °C")
     lp = se.get("lightPct")
-    add("Light intensity", tag("GPIO32 · LDR", "From solar knob"), lp, "%", 0, 100, 0, [], None,
+    add("Light intensity", tag("light", "GPIO32 · LDR", "From solar reading"), lp, "%", 0, 100, 0, [], None,
         "--" if lp is None else "Bright sun" if lp > 60 else "Overcast or low sun" if lp > 20 else "Dark: night or heavy cloud")
     a = se.get("pumpA")
-    add("Pump current", tag("GPIO33 · ACS712", "Knob · GPIO33"), a, "A", 0, 12, 2, [C.dry_run_a, C.over_current_a],
+    add("Pump current", tag("current", "GPIO33 · ACS712", "Knob · GPIO33"), a, "A", 0, 12, 2, [C.dry_run_a, C.over_current_a],
         "crit" if s["fault"] in ("DRY_RUN", "OVER_CURRENT") else "water" if s.get("pump") else None,
         f"Dry-run < {C.dry_run_a:g} A · trip > {C.over_current_a:g} A")
     f = se.get("flowLpm")
-    add("Water flow", tag("GPIO27 · YF-S201", "Knob · GPIO36"), f, "L/min", 0, 20, 1, [C.no_flow_lpm],
+    add("Water flow", tag("flow", "GPIO27 · YF-S201", "Knob · GPIO36"), f, "L/min", 0, 20, 1, [C.no_flow_lpm],
         "crit" if s["fault"] == "NO_FLOW" else "water" if (f or 0) > C.no_flow_lpm else None,
         f"No-flow alarm below {C.no_flow_lpm:g} L/min")
     return out

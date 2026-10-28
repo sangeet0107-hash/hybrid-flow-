@@ -46,6 +46,7 @@ struct SerialStub {
   int available() { return 0; }
   int read() { return -1; }
   void println(const char*) {}
+  void println() {}
   int printf(const char* fmt, ...) __attribute__((format(printf, 2, 3))) { (void)fmt; return 0; }
 };
 extern SerialStub Serial;

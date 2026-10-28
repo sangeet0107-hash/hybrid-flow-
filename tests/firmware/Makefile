@@ -28,8 +28,11 @@ syntax:
 	$(SYNTAX) $(FW)/cloud.cpp
 	$(SYNTAX) $(ONLINE) -DSIM_INPUTS=0 -include Arduino.h -x c++ $(FW)/hybrid_flow.ino
 	$(SYNTAX) $(ONLINE) -DSIM_INPUTS=0 $(FW)/sensors.cpp $(FW)/cloud.cpp
-	$(SYNTAX) $(ONLINE) -DWOKWI_SIM=1 -DUSE_DHT22=1 $(FW)/sensors.cpp
-	@echo "firmware compiles against the host stand-ins (bench online/offline, field and Wokwi profiles)"
+	$(SYNTAX) $(ONLINE) -DWOKWI_SIM=1 -DREAL_DHT22=1 $(FW)/sensors.cpp
+	$(SYNTAX) $(ONLINE) -DSIM_INPUTS=1 -include Arduino.h -x c++ $(FW)/hybrid_flow.ino
+	$(SYNTAX) $(ONLINE) -DSIM_INPUTS=1 $(FW)/sensors.cpp $(FW)/cloud.cpp
+	$(SYNTAX) $(ONLINE) -DREAL_SOLAR=1 -DREAL_CURRENT=1 $(FW)/sensors.cpp
+	@echo "firmware compiles against the host stand-ins (bench with real sensors, all knobs, field, Wokwi and mixed profiles)"
 
 json_check: json_check.cpp stubs/stub_impl.cpp $(FW)/cloud.cpp $(SRC)
 	$(CXX) -std=gnu++17 -Wno-unused-parameter -Istubs -I$(FW) -o $@ json_check.cpp stubs/stub_impl.cpp $(FW)/cloud.cpp $(SRC)
